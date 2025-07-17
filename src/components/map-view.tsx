@@ -53,6 +53,19 @@ export const BASE_LAYER_DEFINITIONS: readonly BaseLayerDefinition[] = [
     }),
   },
   {
+    id: 'carto-labels',
+    name: 'OSM Etiquetas (Carto)',
+    createLayer: () => new TileLayer({
+      source: new XYZ({ 
+        url: 'https://{a-d}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png',
+        attributions: 'Map tiles by <a href="https://carto.com/attributions">Carto</a>, under CC BY 3.0. Data by <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, under ODbL.',
+        maxZoom: 20,
+        crossOrigin: 'Anonymous'
+      }),
+      properties: { baseLayerId: 'carto-labels', isBaseLayer: true, name: 'CartoLabelsBaseLayer' },
+    }),
+  },
+  {
     id: 'esri-satellite',
     name: 'ESRI Satelital (Color Natural)',
     createLayer: () => new TileLayer({
