@@ -1,76 +1,109 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: var(--font-encode-sans), sans-serif; /* Use Encode Sans as the default body font */
+}
+
 @layer base {
   :root {
-    --background: 220 17% 95%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 207 70% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 240 5.9% 10%;
-    --accent: 145 63% 49%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 207 70% 53%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --background: 208 100% 97%; /* Very light, desaturated blue (#F0F8FF) */
+    --foreground: 210 30% 20%; /* Dark grayish blue for text */
+
+    --muted: 210 40% 90%; /* Lighter, desaturated blue */
+    --muted-foreground: 210 30% 45%; /* Mid-tone grayish blue */
+
+    --popover: 208 100% 99%; /* Slightly off-background */
+    --popover-foreground: 210 30% 20%; /* Dark grayish blue for popover text */
+
+    --card: 208 100% 99%; /* Slightly off-background */
+    --card-foreground: 210 30% 20%; /* Dark grayish blue for card text */
+
+    --border: 210 30% 85%; /* Light grayish blue border */
+    --input: 210 30% 92%; /* Light input background */
+
+    --primary: 200 44% 35%; /* Azul petróleo #316781 */
+    --primary-foreground: 0 0% 98%; /* White/very light for text on primary */
+
+    --secondary: 210 50% 85%; /* Lighter shade of original primary */
+    --secondary-foreground: 210 50% 30%; /* Darker shade of original primary for text on secondary */
+
+    --accent: 280 26% 65%; /* Pale violet (#B08BBF) */
+    --accent-foreground: 0 0% 98%; /* White/very light for text on accent */
+
+    --destructive: 0 72% 51%; /* A standard red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* White/very light for text on destructive */
+
+    --ring: 200 44% 38%; /* Based on new petroleum blue primary for rings */
+
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-primary: 207 70% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 17% 95%;
-    --sidebar-accent-foreground: 240 10% 3.9%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 207 70% 53%;
-  }
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 207 70% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 145 63% 49%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 207 70% 53%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 207 70% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+
+    /* Sidebar specific variables - can be themed similarly if a sidebar is added later */
+    --sidebar-background: 210 40% 95%;
+    --sidebar-foreground: 210 30% 25%;
+    --sidebar-primary: 200 44% 35%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 280 26% 65%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 207 70% 53%;
+    --sidebar-border: 210 30% 80%;
+    --sidebar-ring: 200 44% 38%;
+
+    /* Chart colors (can be customized further) */
+    --chart-1: 210 60% 55%;
+    --chart-2: 280 40% 60%;
+    --chart-3: 180 50% 50%;
+    --chart-4: 30 70% 60%;
+    --chart-5: 330 65% 60%;
+  }
+
+  .dark {
+    --background: 210 30% 10%; /* Very dark blue */
+    --foreground: 210 30% 90%; /* Very light blue */
+
+    --muted: 210 25% 20%; /* Darker, desaturated blue */
+    --muted-foreground: 210 25% 65%; /* Lighter grayish blue for muted text */
+
+    --popover: 210 30% 12%; /* Slightly off-dark-background */
+    --popover-foreground: 210 30% 90%; /* Light blue for popover text */
+
+    --card: 210 30% 12%; /* Slightly off-dark-background */
+    --card-foreground: 210 30% 90%; /* Light blue for card text */
+
+    --border: 210 25% 30%; /* Dark grayish blue border */
+    --input: 210 25% 25%; /* Dark input background */
+
+    --primary: 200 44% 35%; /* Azul petróleo #316781 (mantener consistencia o ajustar para dark mode si es necesario) */
+    --primary-foreground: 0 0% 98%; /* Dark blue for text on primary in dark mode */
+
+    --secondary: 210 50% 30%; /* Darker shade of primary */
+    --secondary-foreground: 210 50% 85%; /* Lighter shade of primary for text on secondary */
+
+    --accent: 280 26% 65%; /* Pale violet (can be same as light or adjusted) */
+    --accent-foreground: 280 26% 10%; /* Dark violet for text on accent */
+    
+    --destructive: 0 60% 45%; /* Darker red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* White/very light for text on destructive */
+
+    --ring: 200 44% 38%; /* Slightly darker/muted primary for rings in dark mode */
+
+    /* Sidebar specific variables - dark theme */
+    --sidebar-background: 210 25% 15%;
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 200 44% 35%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 280 26% 65%;
+    --sidebar-accent-foreground: 280 26% 10%;
+    --sidebar-border: 210 25% 25%;
+    --sidebar-ring: 200 44% 38%;
+
+    /* Chart colors for dark theme */
+    --chart-1: 210 60% 65%;
+    --chart-2: 280 40% 70%;
+    --chart-3: 180 50% 60%;
+    --chart-4: 30 70% 70%;
+    --chart-5: 330 65% 70%;
   }
 }
 
@@ -80,5 +113,51 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom style for OpenLayers DragBox */
+.ol-dragbox {
+  background-color: rgba(0, 150, 255, 0.1);
+  border: 2px solid rgb(0, 150, 255);
+  z-index: 10000; /* Ensure it's on top */
+}
+
+/* Custom style to move attribution to the bottom right */
+.ol-attribution {
+  bottom: 0.5em;
+  right: 0.5em;
+  left: auto; /* Override default left positioning */
+  max-width: calc(100% - 3em); /* Prevent overlap with zoom controls */
+  background: rgba(255, 255, 255, 0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-layout-container, #print-layout-container * {
+    visibility: visible;
+  }
+  #print-layout-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Explicitly hide Radix UI Portals (like dropdowns/popovers) when printing */
+  [data-radix-popper-content-wrapper] {
+      visibility: hidden !important;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 0;
   }
 }
