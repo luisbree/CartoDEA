@@ -21,8 +21,8 @@ const SuggestExplorationAreasInputSchema = z.object({
   currentLocation: z
     .string()
     .describe(
-      'The users current location, formatted as a string with latitude and longitude.
-      Example: 34.0522,-118.2437'
+      `The users current location, formatted as a string with latitude and longitude.
+      Example: 34.0522,-118.2437`
     ),
 });
 export type SuggestExplorationAreasInput = z.infer<
