@@ -269,8 +269,18 @@ const MapView: React.FC<MapViewProps> = ({ setMapInstanceAndElement, onMapClick,
     const bandToShow = selectedDef.band || 'none';
 
     Object.values(baseLayerRefs.current).forEach(layer => {
-      const isVisible = layer.get('baseLayerId') === layerIdToShow;
+      const layerId = layer.get('baseLayerId');
+      const isVisible = layerId === layerIdToShow;
       layer.setVisible(isVisible);
+
+      // --- NEW LOGIC ---
+      // If the layer is the label layer, set a high z-index.
+      // Otherwise, set a low z-index (or default) for other base layers.
+      if (layerId === 'carto-labels') {
+        layer.setZIndex(isVisible ? 500 : 0);
+      } else {
+        layer.setZIndex(0);
+      }
       
       if (isVisible) {
         applyBaseLayerEffects(layer, baseLayerSettings, bandToShow);
