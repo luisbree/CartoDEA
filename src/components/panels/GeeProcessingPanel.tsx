@@ -6,9 +6,9 @@ import DraggablePanel from './DraggablePanel';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle } from 'lucide-react';
+import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { getGeeTileLayer, authenticateWithGee } from '@/ai/flows/gee-flow';
+import { getGeeTileLayer } from '@/ai/flows/gee-flow';
 import type { Map } from 'ol';
 import { transformExtent } from 'ol/proj';
 import type { GeeTileLayerInput } from '@/ai/flows/gee-types';
@@ -22,6 +22,8 @@ interface GeeProcessingPanelProps {
   onMouseDownHeader: (e: React.MouseEvent<HTMLDivElement>) => void;
   onAddGeeLayer: (tileUrl: string, layerName: string) => void;
   mapRef: React.RefObject<Map | null>;
+  isAuthenticating: boolean;
+  isAuthenticated: boolean;
   style?: React.CSSProperties;
 }
 
@@ -35,40 +37,13 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
   onMouseDownHeader,
   onAddGeeLayer,
   mapRef,
+  isAuthenticating,
+  isAuthenticated,
   style,
 }) => {
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedCombination, setSelectedCombination] = useState<BandCombination>('URBAN_FALSE_COLOR');
   const { toast } = useToast();
-
-  const handleAuthentication = async () => {
-    setIsAuthenticating(true);
-    try {
-      const result = await authenticateWithGee();
-      if (result.success) {
-        toast({
-          title: "Autenticación Exitosa",
-          description: result.message,
-        });
-        setIsAuthenticated(true);
-      } else {
-        // This case might not be hit if errors are always thrown, but it's good practice.
-        throw new Error('La autenticación no tuvo éxito pero no arrojó un error.');
-      }
-    } catch (error: any) {
-      console.error("GEE Authentication Error:", error);
-      toast({
-        title: "Error de Autenticación",
-        description: error.message || "Ocurrió un error desconocido durante la autenticación.",
-        variant: "destructive",
-      });
-      setIsAuthenticated(false);
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
 
   const handleGenerateLayer = async () => {
     if (!mapRef.current) {
@@ -134,6 +109,31 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
     }
   };
 
+  const getAuthStatusContent = () => {
+    if (isAuthenticating) {
+      return (
+        <div className="flex items-center text-xs text-yellow-300">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Autenticando con Google Earth Engine...
+        </div>
+      );
+    }
+    if (isAuthenticated) {
+      return (
+        <div className="flex items-center text-xs text-green-400">
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Autenticación con GEE exitosa.
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center text-xs text-red-400">
+        <AlertTriangle className="mr-2 h-4 w-4" />
+        Fallo en la autenticación con GEE. Verifique la consola.
+      </div>
+    );
+  };
+
   return (
     <DraggablePanel
       title="Procesamiento GEE"
@@ -150,6 +150,9 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
       initialSize={{ width: 350, height: "auto" }}
     >
       <div className="bg-white/5 rounded-md p-3 space-y-3">
+        <div className="p-2 rounded-md bg-black/20 text-center">
+            {getAuthStatusContent()}
+        </div>
         <div>
             <h3 className="text-sm font-semibold text-white mb-2">Composición de Bandas / Índices</h3>
             <RadioGroup defaultValue={selectedCombination} onValueChange={(value: BandCombination) => setSelectedCombination(value)}>
@@ -172,24 +175,13 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
             </RadioGroup>
         </div>
         <div className="space-y-2 pt-2 border-t border-white/10">
-          <Button onClick={handleAuthentication} disabled={isAuthenticating || isAuthenticated} className="w-full">
-            {isAuthenticating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : isAuthenticated ? (
-              <CheckCircle className="mr-2 h-4 w-4 text-green-400" />
-            ) : (
-              <ShieldCheck className="mr-2 h-4 w-4" />
-            )}
-            {isAuthenticating ? "Autenticando..." : isAuthenticated ? "Autenticado" : "1. Autenticar con GEE"}
-          </Button>
-
-          <Button onClick={handleGenerateLayer} disabled={isGenerating || !isAuthenticated} className="w-full">
+          <Button onClick={handleGenerateLayer} disabled={isGenerating || isAuthenticating || !isAuthenticated} className="w-full">
             {isGenerating ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <ImageIcon className="mr-2 h-4 w-4" />
             )}
-            {isGenerating ? "Procesando..." : "2. Generar y Añadir Capa"}
+            {isGenerating ? "Procesando..." : "Generar y Añadir Capa"}
           </Button>
         </div>
       </div>

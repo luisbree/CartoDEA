@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { OSMCategoryConfig, GeoServerDiscoveredLayer, BaseLayerOptionForSelect, MapLayer, ChatMessage, BaseLayerSettings } from '@/lib/types';
 import { chatWithMapAssistant, type MapAssistantOutput } from '@/ai/flows/find-layer-flow';
 import { searchTrelloCard } from '@/ai/flows/trello-actions';
+import { authenticateWithGee } from '@/ai/flows/gee-flow';
 
 
 const osmCategoryConfig: OSMCategoryConfig[] = [
@@ -190,6 +191,8 @@ export default function GeoMapperClient() {
   ]);
   const [isTrelloLoading, setIsTrelloLoading] = useState(false);
   const [printLayoutData, setPrintLayoutData] = useState<MapCaptureData | null>(null);
+  const [isGeeAuthenticated, setIsGeeAuthenticated] = useState(false);
+  const [isGeeAuthenticating, setIsGeeAuthenticating] = useState(true); // Start as true
 
 
   const updateDiscoveredLayerState = useCallback((layerName: string, added: boolean, type: 'wms' | 'wfs') => {
@@ -248,6 +251,37 @@ export default function GeoMapperClient() {
        loadInitialLayers();
     }
   }, [isMapReady, handleFetchGeoServerLayers, toast]);
+
+  // Effect for automatic GEE authentication on load
+  useEffect(() => {
+    const runGeeAuth = async () => {
+        setIsGeeAuthenticating(true);
+        try {
+            const result = await authenticateWithGee();
+            if (result.success) {
+                toast({
+                    title: "GEE Conectado",
+                    description: result.message,
+                });
+                setIsGeeAuthenticated(true);
+            }
+        } catch (error: any) {
+            console.error("Error de autenticación automática con GEE:", error);
+            toast({
+                title: "Error de Autenticación GEE",
+                description: error.message || "No se pudo autenticar con Google Earth Engine.",
+                variant: "destructive",
+            });
+            setIsGeeAuthenticated(false);
+        } finally {
+            setIsGeeAuthenticating(false);
+        }
+    };
+
+    if (isMapReady) {
+        runGeeAuth();
+    }
+  }, [isMapReady, toast]);
 
   const osmDataHook = useOSMData({ 
     mapRef, 
@@ -728,6 +762,8 @@ export default function GeoMapperClient() {
             onMouseDownHeader={(e) => handlePanelMouseDown(e, 'gee')}
             onAddGeeLayer={layerManagerHook.addGeeLayerToMap}
             mapRef={mapRef}
+            isAuthenticating={isGeeAuthenticating}
+            isAuthenticated={isGeeAuthenticated}
             style={{ top: `${panels.gee.position.y}px`, left: `${panels.gee.position.x}px`, zIndex: panels.gee.zIndex }}
           />
         )}
@@ -794,5 +830,3 @@ export default function GeoMapperClient() {
     </div>
   );
 }
-
-    
