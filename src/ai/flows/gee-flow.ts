@@ -49,10 +49,6 @@ const geeTileLayerFlow = ai.defineFlow(
       let finalImage;
       let visParams: { bands?: string[]; min: number; max: number; gamma?: number, palette?: string[] };
       
-      let imageCount = 0;
-      let actualStartDate = '';
-      let actualEndDate = '';
-
       // Base Sentinel-2 Image Collection
       if (bandCombination !== 'JRC_WATER_OCCURRENCE') {
           let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
@@ -65,18 +61,6 @@ const geeTileLayerFlow = ai.defineFlow(
           } else {
               // Default to the last year if no dates are provided
               s2ImageCollection = s2ImageCollection.filterDate(ee.Date(Date.now()).advance(-1, 'year'), ee.Date(Date.now()));
-          }
-
-          // Get metadata before creating the composite
-          const size = await promisify(s2ImageCollection.size().getInfo.bind(s2ImageCollection.size()))();
-          imageCount = size as number;
-          
-          if (imageCount > 0) {
-              const dateRange = await promisify(s2ImageCollection.reduceColumns(ee.Reducer.minMax(), ['system:time_start']).getInfo.bind(s2ImageCollection.reduceColumns(ee.Reducer.minMax(), ['system:time_start'])))();
-              actualStartDate = ee.Date(dateRange.min).format('YYYY-MM-dd').getInfo();
-              actualEndDate = ee.Date(s2ImageCollection.sort('system:time_start', false).first().date().format('YYYY-MM-dd')).getInfo();
-          } else {
-               throw new Error('No se encontraron imágenes para el área y rango de fechas especificados.');
           }
 
           // Using median() is a good way to get a composite with low cloud cover
@@ -127,9 +111,6 @@ const geeTileLayerFlow = ai.defineFlow(
             max: 100,
             palette: ['#FFFFFF', 'lightblue', 'blue'] // White to light blue to dark blue
           };
-          imageCount = 1;
-          actualStartDate = '1984-03-16';
-          actualEndDate = '2023-12-31';
       }
       
       const mapDetails = await new Promise<any>((resolve, reject) => {
@@ -146,11 +127,7 @@ const geeTileLayerFlow = ai.defineFlow(
       
       const tileUrl = mapDetails.urlFormat.replace('{x}', '{x}').replace('{y}', '{y}').replace('{z}', '{z}');
       
-      return { 
-          tileUrl,
-          imageCount,
-          dateRange: { start: actualStartDate, end: actualEndDate }
-      };
+      return { tileUrl };
 
     } catch (error: any) {
         console.error("Earth Engine Error:", error);

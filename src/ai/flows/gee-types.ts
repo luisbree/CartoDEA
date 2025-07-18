@@ -27,10 +27,5 @@ export type GeeTileLayerInput = z.infer<typeof GeeTileLayerInputSchema>;
 
 export const GeeTileLayerOutputSchema = z.object({
   tileUrl: z.string().describe("The XYZ tile URL template for the generated GEE layer."),
-  imageCount: z.number().describe("The number of images in the collection used for the composite."),
-  dateRange: z.object({
-      start: z.string().describe("The start date of the image collection range in YYYY-MM-DD format."),
-      end: z.string().describe("The end date of the image collection range in YYYY-MM-DD format."),
-  }).describe("The date range of the images used in the composite."),
 });
 export type GeeTileLayerOutput = z.infer<typeof GeeTileLayerOutputSchema>;

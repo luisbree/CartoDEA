@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle, AlertTriangle, Calendar as CalendarIcon, Info } from 'lucide-react';
+import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { getGeeTileLayer } from '@/ai/flows/gee-flow';
 import type { Map } from 'ol';
@@ -34,12 +34,6 @@ interface GeeProcessingPanelProps {
 
 type BandCombination = GeeTileLayerInput['bandCombination'];
 
-interface Metadata {
-  imageCount: number;
-  dateRange: { start: string, end: string };
-  bandCombination: BandCombination;
-}
-
 const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
   panelRef,
   isCollapsed,
@@ -58,7 +52,6 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
     from: addDays(new Date(), -365),
     to: new Date(),
   });
-  const [lastRunMetadata, setLastRunMetadata] = useState<Metadata | null>(null);
   const { toast } = useToast();
 
   const handleGenerateLayer = async () => {
@@ -71,7 +64,6 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
         return;
     }
     setIsGenerating(true);
-    setLastRunMetadata(null);
     
     try {
         const view = mapRef.current.getView();
@@ -112,11 +104,6 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                     layerName = 'Capa GEE';
             }
             onAddGeeLayer(result.tileUrl, layerName);
-            setLastRunMetadata({
-              imageCount: result.imageCount,
-              dateRange: result.dateRange,
-              bandCombination: selectedCombination,
-            });
         } else {
             throw new Error("La respuesta del servidor no contenía una URL de teselas.");
         }
@@ -253,20 +240,6 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
             {isGenerating ? "Procesando..." : "Generar y Añadir Capa"}
           </Button>
         </div>
-
-        {lastRunMetadata && (
-            <div className="mt-3 pt-3 border-t border-white/10 text-xs text-gray-300 space-y-1">
-                <h4 className="font-semibold text-white flex items-center mb-1"><Info className="h-4 w-4 mr-2"/>Metadatos de la Capa Generada</h4>
-                <p>
-                  {lastRunMetadata.bandCombination !== 'JRC_WATER_OCCURRENCE' 
-                    ? <>El mosaico fue creado a partir de <strong>{lastRunMetadata.imageCount}</strong> imágenes de Sentinel-2.</>
-                    : <>Capa de ocurrencia de agua de JRC (1984-2023).</>
-                  }
-                </p>
-                <p>Fechas de las imágenes: <strong>{lastRunMetadata.dateRange.start}</strong> al <strong>{lastRunMetadata.dateRange.end}</strong>.</p>
-            </div>
-        )}
-
       </div>
     </DraggablePanel>
   );
