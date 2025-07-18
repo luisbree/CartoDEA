@@ -2,16 +2,21 @@
 "use client";
 
 import React, { useState } from 'react';
+import { addDays, format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import DraggablePanel from './DraggablePanel';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { getGeeTileLayer } from '@/ai/flows/gee-flow';
 import type { Map } from 'ol';
 import { transformExtent } from 'ol/proj';
 import type { GeeTileLayerInput } from '@/ai/flows/gee-types';
+import { cn } from '@/lib/utils';
 
 
 interface GeeProcessingPanelProps {
@@ -43,6 +48,10 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedCombination, setSelectedCombination] = useState<BandCombination>('URBAN_FALSE_COLOR');
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -365),
+    to: new Date(),
+  });
   const { toast } = useToast();
 
   const handleGenerateLayer = async () => {
@@ -72,6 +81,8 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
             },
             zoom: zoom,
             bandCombination: selectedCombination,
+            startDate: date?.from ? format(date.from, 'yyyy-MM-dd') : undefined,
+            endDate: date?.to ? format(date.to, 'yyyy-MM-dd') : undefined,
         });
         
         if (result && result.tileUrl) {
@@ -174,8 +185,53 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
               </div>
             </RadioGroup>
         </div>
+
+        <div className="pt-2 border-t border-white/10">
+          <Label className="text-sm font-semibold text-white mb-2 block">Rango de Fechas (Sentinel-2)</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal h-9 text-xs border-white/30 bg-black/20 text-white/90 focus:ring-primary",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "LLL dd, y")} -{" "}
+                      {format(date.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(date.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Seleccionar rango</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-gray-700 text-white border-gray-600" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={setDate}
+                numberOfMonths={2}
+                classNames={{
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary/90",
+                    day_today: "bg-accent/50 text-accent-foreground",
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
         <div className="space-y-2 pt-2 border-t border-white/10">
-          <Button onClick={handleGenerateLayer} disabled={isGenerating || isAuthenticating || !isAuthenticated} className="w-full">
+          <Button onClick={handleGenerateLayer} disabled={isGenerating || isAuthenticating || !isAuthenticated || !date?.from || !date?.to} className="w-full">
             {isGenerating ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

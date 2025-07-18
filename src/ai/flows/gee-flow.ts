@@ -43,20 +43,28 @@ const geeTileLayerFlow = ai.defineFlow(
     try {
       await initializeEe();
 
-      const { aoi, bandCombination } = input;
+      const { aoi, bandCombination, startDate, endDate } = input;
       const geometry = ee.Geometry.Rectangle([aoi.minLon, aoi.minLat, aoi.maxLon, aoi.maxLat]);
       
       let finalImage;
       let visParams: { bands?: string[]; min: number; max: number; gamma?: number, palette?: string[] };
       
-      // Sentinel-2 Image Collection for relevant combinations
-      const s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+      // Base Sentinel-2 Image Collection
+      let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterBounds(geometry)
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
+      
+      // Apply date filter if provided
+      if (startDate && endDate) {
+          s2ImageCollection = s2ImageCollection.filterDate(startDate, endDate);
+      } else {
+          // Default to the last year if no dates are provided
+          s2ImageCollection = s2ImageCollection.filterDate(ee.Date(Date.now()).advance(-1, 'year'), ee.Date(Date.now()));
+      }
 
-      const s2Image = s2ImageCollection
-        .filterDate('2023-01-01', '2023-12-31')
-        .median();
+      // Using median() is a good way to get a composite with low cloud cover
+      const s2Image = s2ImageCollection.median();
+
 
       switch (bandCombination) {
         case 'SWIR_FALSE_COLOR':
