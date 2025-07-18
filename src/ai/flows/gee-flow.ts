@@ -49,69 +49,87 @@ const geeTileLayerFlow = ai.defineFlow(
       let finalImage;
       let visParams: { bands?: string[]; min: number; max: number; gamma?: number, palette?: string[] };
       
+      let imageCount = 0;
+      let actualStartDate = '';
+      let actualEndDate = '';
+
       // Base Sentinel-2 Image Collection
-      let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-        .filterBounds(geometry)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
-      
-      // Apply date filter if provided
-      if (startDate && endDate) {
-          s2ImageCollection = s2ImageCollection.filterDate(startDate, endDate);
+      if (bandCombination !== 'JRC_WATER_OCCURRENCE') {
+          let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+            .filterBounds(geometry)
+            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
+          
+          // Apply date filter if provided
+          if (startDate && endDate) {
+              s2ImageCollection = s2ImageCollection.filterDate(startDate, endDate);
+          } else {
+              // Default to the last year if no dates are provided
+              s2ImageCollection = s2ImageCollection.filterDate(ee.Date(Date.now()).advance(-1, 'year'), ee.Date(Date.now()));
+          }
+
+          // Get metadata before creating the composite
+          const size = await promisify(s2ImageCollection.size().getInfo.bind(s2ImageCollection.size()))();
+          imageCount = size as number;
+          
+          if (imageCount > 0) {
+              const dateRange = await promisify(s2ImageCollection.reduceColumns(ee.Reducer.minMax(), ['system:time_start']).getInfo.bind(s2ImageCollection.reduceColumns(ee.Reducer.minMax(), ['system:time_start'])))();
+              actualStartDate = ee.Date(dateRange.min).format('YYYY-MM-dd').getInfo();
+              actualEndDate = ee.Date(s2ImageCollection.sort('system:time_start', false).first().date().format('YYYY-MM-dd')).getInfo();
+          } else {
+               throw new Error('No se encontraron imágenes para el área y rango de fechas especificados.');
+          }
+
+          // Using median() is a good way to get a composite with low cloud cover
+          const s2Image = s2ImageCollection.median();
+          
+          switch (bandCombination) {
+            case 'SWIR_FALSE_COLOR':
+              finalImage = s2Image;
+              visParams = {
+                bands: ['B12', 'B8A', 'B4'], // SWIR, NIR, Red
+                min: 0,
+                max: 3000,
+              };
+              break;
+
+            case 'BSI':
+              // Bare Soil Index formula: BSI = ((B11+B4) - (B8+B2)) / ((B11+B4) + (B8+B2))
+              finalImage = s2Image.expression(
+                '((B11 + B4) - (B8 + B2)) / ((B11 + B4) + (B8 + B2))',
+                {
+                  'B11': s2Image.select('B11'), // SWIR 1
+                  'B4': s2Image.select('B4'),   // Red
+                  'B8': s2Image.select('B8'),   // NIR
+                  'B2': s2Image.select('B2')    // Blue
+                }
+              ).rename('BSI');
+              visParams = {
+                min: -1, 
+                max: 1, 
+                palette: ['#2ca25f', '#ffffbf', '#fdae61', '#d7191c'] // Green -> Yellow -> Orange -> Red (vegetation to bare soil)
+              };
+              break;
+            
+            case 'URBAN_FALSE_COLOR':
+            default:
+              finalImage = s2Image;
+              visParams = {
+                bands: ['B8', 'B4', 'B3'], // NIR, Red, Green -> False Color for Urban
+                min: 0,
+                max: 3000,
+              };
+              break;
+          }
       } else {
-          // Default to the last year if no dates are provided
-          s2ImageCollection = s2ImageCollection.filterDate(ee.Date(Date.now()).advance(-1, 'year'), ee.Date(Date.now()));
-      }
-
-      // Using median() is a good way to get a composite with low cloud cover
-      const s2Image = s2ImageCollection.median();
-
-
-      switch (bandCombination) {
-        case 'SWIR_FALSE_COLOR':
-          finalImage = s2Image;
-          visParams = {
-            bands: ['B12', 'B8A', 'B4'], // SWIR, NIR, Red
-            min: 0,
-            max: 3000,
-          };
-          break;
-
-        case 'BSI':
-          // Bare Soil Index formula: BSI = ((B11+B4) - (B8+B2)) / ((B11+B4) + (B8+B2))
-          finalImage = s2Image.expression(
-            '((B11 + B4) - (B8 + B2)) / ((B11 + B4) + (B8 + B2))',
-            {
-              'B11': s2Image.select('B11'), // SWIR 1
-              'B4': s2Image.select('B4'),   // Red
-              'B8': s2Image.select('B8'),   // NIR
-              'B2': s2Image.select('B2')    // Blue
-            }
-          ).rename('BSI');
-          visParams = {
-            min: -1, 
-            max: 1, 
-            palette: ['#2ca25f', '#ffffbf', '#fdae61', '#d7191c'] // Green -> Yellow -> Orange -> Red (vegetation to bare soil)
-          };
-          break;
-        
-        case 'JRC_WATER_OCCURRENCE':
           finalImage = ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence');
           visParams = {
             min: 0,
             max: 100,
             palette: ['#FFFFFF', 'lightblue', 'blue'] // White to light blue to dark blue
           };
-          break;
-
-        case 'URBAN_FALSE_COLOR':
-        default:
-          finalImage = s2Image;
-          visParams = {
-            bands: ['B8', 'B4', 'B3'], // NIR, Red, Green -> False Color for Urban
-            min: 0,
-            max: 3000,
-          };
-          break;
+          imageCount = 1;
+          actualStartDate = '1984-03-16';
+          actualEndDate = '2023-12-31';
       }
       
       const mapDetails = await new Promise<any>((resolve, reject) => {
@@ -127,8 +145,13 @@ const geeTileLayerFlow = ai.defineFlow(
       });
       
       const tileUrl = mapDetails.urlFormat.replace('{x}', '{x}').replace('{y}', '{y}').replace('{z}', '{z}');
+      
+      return { 
+          tileUrl,
+          imageCount,
+          dateRange: { start: actualStartDate, end: actualEndDate }
+      };
 
-      return { tileUrl };
     } catch (error: any) {
         console.error("Earth Engine Error:", error);
         // Provide more specific error messages if possible
