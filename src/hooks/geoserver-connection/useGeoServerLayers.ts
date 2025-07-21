@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -137,6 +138,8 @@ export const useGeoServerLayers = ({
   }, [isMapReady, mapRef, addLayer, onLayerStateUpdate, toast]);
   
   const handleAddGeoServerLayerAsWFS = useCallback(async (layerName: string, layerTitle: string, urlOverride: string, styleName?: string) => {
+    console.log(`[DEBUG] handleAddGeoServerLayerAsWFS called for: layerName=${layerName}, styleName=${styleName}`);
+    
     const urlToUse = urlOverride;
     if (!isMapReady || !urlToUse) return;
 
@@ -184,13 +187,16 @@ export const useGeoServerLayers = ({
       
       let olStyle;
       if (styleName) {
+        console.log(`[DEBUG] Attempting to fetch style '${styleName}' from GeoServer.`);
         olStyle = await getStyleFromSld(styleName, urlToUse);
+        console.log(`[DEBUG] Result from getStyleFromSld:`, olStyle);
+      } else {
+        console.log(`[DEBUG] No styleName provided. A default style will be used.`);
       }
-
 
       const vectorLayer = new VectorLayer({
         source: vectorSource,
-        style: olStyle,
+        style: olStyle, // Will be undefined if not found, OL will use its default
         properties: {
           id: `wfs-${layerName}-${nanoid()}`,
           name: layerTitle || layerName,
@@ -198,6 +204,7 @@ export const useGeoServerLayers = ({
           gsLayerName: layerName
         }
       });
+      console.log(`[DEBUG] Applying style to layer '${layerName}':`, olStyle ? 'Custom SLD Style' : 'OpenLayers Default Style');
       
       addLayer({
         id: vectorLayer.get('id'),
@@ -225,3 +232,4 @@ export const useGeoServerLayers = ({
     handleAddGeoServerLayerAsWFS,
   };
 };
+

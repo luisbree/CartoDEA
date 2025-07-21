@@ -16,16 +16,21 @@ export async function getStyleFromSld(styleName: string, geoServerUrl: string): 
   // Use the application's proxy to bypass CORS issues
   const proxyUrl = `/api/geoserver-proxy?url=${encodeURIComponent(sldUrl)}&cacheBust=${Date.now()}`;
   
+  console.log(`[DEBUG] getStyleFromSld: Fetching SLD from proxy URL: ${proxyUrl}`);
+  
   try {
     const response = await fetch(proxyUrl);
+    console.log(`[DEBUG] getStyleFromSld: Proxy response status: ${response.status}`);
+
     if (!response.ok) {
-      console.warn(`Could not fetch SLD style '${styleName}'. Server responded with status ${response.status}.`);
+      const errorText = await response.text();
+      console.warn(`[DEBUG] Could not fetch SLD style '${styleName}'. Server responded with status ${response.status}. Body: ${errorText}`);
       return undefined;
     }
     const sldString = await response.text();
     
     if (sldString.toLowerCase().includes('nosuchstyle')) {
-      console.warn(`SLD style '${styleName}' not found on GeoServer.`);
+      console.warn(`[DEBUG] SLD style '${styleName}' not found on GeoServer.`);
       return undefined;
     }
 
@@ -34,32 +39,35 @@ export async function getStyleFromSld(styleName: string, geoServerUrl: string): 
     const { output: geoStylerStyle, errors } = await sldParser.readStyle(sldString);
 
     if (errors && errors.length > 0) {
-      errors.forEach(e => console.warn('GeoStyler SLD Parsing Warning:', e));
+      errors.forEach(e => console.warn('[DEBUG] GeoStyler SLD Parsing Warning:', e));
     }
     
     if (!geoStylerStyle) {
-      console.warn(`Could not parse SLD style '${styleName}'.`);
+      console.warn(`[DEBUG] Could not parse SLD style '${styleName}'. The parsed GeoStyler object is empty.`);
       return undefined;
     }
+    console.log("[DEBUG] Successfully parsed SLD to GeoStyler format:", geoStylerStyle);
 
     // Initialize the OpenLayers parser from GeoStyler
     const olParser = new OlStyleParser();
     const { output: olStyle, errors: olErrors } = await olParser.writeStyle(geoStylerStyle);
 
     if (olErrors && olErrors.length > 0) {
-      olErrors.forEach(e => console.warn('GeoStyler OL Parsing Warning:', e));
+      olErrors.forEach(e => console.warn('[DEBUG] GeoStyler OL Parsing Warning:', e));
     }
 
     if (!olStyle) {
-      console.warn(`Could not convert GeoStyler style to OpenLayers style for '${styleName}'.`);
+      console.warn(`[DEBUG] Could not convert GeoStyler style to OpenLayers style for '${styleName}'.`);
       return undefined;
     }
+    console.log("[DEBUG] Successfully converted GeoStyler style to OpenLayers style function:", olStyle);
 
     // The parser returns a StyleFunction, which is what we need for complex styles with rules.
     return olStyle;
 
   } catch (error) {
-    console.error(`Error processing SLD style '${styleName}':`, error);
+    console.error(`[DEBUG] Error processing SLD style '${styleName}':`, error);
     return undefined; // Return undefined on error to allow fallback to default styles
   }
 }
+
