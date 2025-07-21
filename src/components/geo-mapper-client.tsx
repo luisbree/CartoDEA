@@ -420,7 +420,7 @@ export default function GeoMapperClient() {
       action.layersToAddAsWFS.forEach(layerNameToAdd => {
         const layerData = discoveredGeoServerLayers.find(l => l.name === layerNameToAdd);
         if (layerData) {
-            handleAddGeoServerLayerAsWFS(layerData.name, layerData.title, initialGeoServerUrl);
+            handleAddGeoServerLayerAsWFS(layerData.name, layerData.title, initialGeoServerUrl, layerData.styleName);
         } else {
             toast({
                 title: "Capa WFS no encontrada",
@@ -659,6 +659,7 @@ export default function GeoMapperClient() {
                 onMouseDownHeader={(e) => handlePanelMouseDown(e, 'deasCatalog')}
                 discoveredLayers={discoveredGeoServerLayers}
                 onLayerToggle={handleDeasLayerToggle}
+                onAddWfsLayer={(layer) => handleAddGeoServerLayerAsWFS(layer.name, layer.title, initialGeoServerUrl, layer.styleName)}
                 style={{ top: `${panels.deasCatalog.position.y}px`, left: `${panels.deasCatalog.position.x}px`, zIndex: panels.deasCatalog.zIndex }}
             />
         )}
