@@ -9,24 +9,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'GeoServer URL is required' }, { status: 400 });
   }
 
+  // --- START OF AUTHENTICATION LOGIC ---
+  const geoserverUser = process.env.GEOSERVER_USER;
+  const geoserverPassword = process.env.GEOSERVER_PASSWORD;
+
+  const headers = new Headers({
+    'User-Agent': 'MapExplorerApp/1.0 (Proxy)',
+    'Accept': 'application/xml, text/xml, application/json, */*',
+  });
+
+  // If credentials are provided in .env, add Basic Authentication header
+  if (geoserverUser && geoserverPassword) {
+    const basicAuth = btoa(`${geoserverUser}:${geoserverPassword}`);
+    headers.set('Authorization', `Basic ${basicAuth}`);
+  }
+  // --- END OF AUTHENTICATION LOGIC ---
+
   try {
-    // Disable caching for this fetch request to ensure fresh data from GeoServer.
     const response = await fetch(geoServerUrl, {
       method: 'GET',
-      cache: 'no-store', // This is crucial for preventing Next.js from caching the proxy request
-      headers: {
-        'User-Agent': 'MapExplorerApp/1.0 (Proxy)',
-        'Accept': 'application/xml, text/xml, application/json, */*',
-      },
+      cache: 'no-store',
+      headers: headers, // Use the new headers object with potential auth
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      // Try to parse as XML for GeoServer's own error messages, otherwise return plain text
-      if (response.headers.get('content-type')?.includes('xml')) {
+       if (response.headers.get('content-type')?.includes('xml') || response.headers.get('content-type')?.includes('html')) {
          return new NextResponse(errorText, {
           status: response.status,
-          headers: { 'Content-Type': 'application/xml' },
+          headers: { 'Content-Type': response.headers.get('content-type') || 'text/plain' },
         });
       }
       return NextResponse.json({ error: `GeoServer error: ${response.statusText}`, details: errorText }, { status: response.status });
@@ -37,11 +48,9 @@ export async function GET(request: NextRequest) {
 
     const responseHeaders = new Headers();
     responseHeaders.set('Content-Type', contentType);
-    // Also add caching headers to the response to the client browser
     responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     responseHeaders.set('Pragma', 'no-cache');
     responseHeaders.set('Expires', '0');
-
 
     return new NextResponse(data, {
       status: 200,
