@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
     'Accept': 'application/xml, text/xml, application/json, */*',
   });
 
-  // If credentials are provided in .env, add Basic Authentication header
-  if (geoserverUser && geoserverPassword) {
+  // Conditionally add Basic Authentication header ONLY for REST API requests
+  // This prevents sending auth to public WMS/WFS endpoints that don't need it.
+  if (geoServerUrl.includes('/rest/') && geoserverUser && geoserverPassword) {
     const basicAuth = btoa(`${geoserverUser}:${geoserverPassword}`);
     headers.set('Authorization', `Basic ${basicAuth}`);
   }
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-       if (response.headers.get('content-type')?.includes('xml') || response.headers.get('content-type')?.includes('html')) {
+       if (response.headers.get('content-type')?.includes('xml') || response.headers.get('content-type')?.includes('html') || response.headers.get('content-type')?.includes('sld')) {
          return new NextResponse(errorText, {
           status: response.status,
           headers: { 'Content-Type': response.headers.get('content-type') || 'text/plain' },
