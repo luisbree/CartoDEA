@@ -10,27 +10,19 @@ export async function GET(request: NextRequest) {
   }
 
   // --- START OF AUTHENTICATION LOGIC ---
-  const geoserverUser = process.env.GEOSERVER_USER;
-  const geoserverPassword = process.env.GEOSERVER_PASSWORD;
-
+  // Authentication logic has been removed as it was causing issues with public WMS/WFS endpoints.
+  // The new GetStyles approach for SLDs does not require authentication.
   const headers = new Headers({
     'User-Agent': 'MapExplorerApp/1.0 (Proxy)',
     'Accept': 'application/xml, text/xml, application/json, */*',
   });
-
-  // Conditionally add Basic Authentication header ONLY for REST API requests
-  // This prevents sending auth to public WMS/WFS endpoints that don't need it.
-  if (geoServerUrl.includes('/rest/') && geoserverUser && geoserverPassword) {
-    const basicAuth = btoa(`${geoserverUser}:${geoserverPassword}`);
-    headers.set('Authorization', `Basic ${basicAuth}`);
-  }
   // --- END OF AUTHENTICATION LOGIC ---
 
   try {
     const response = await fetch(geoServerUrl, {
       method: 'GET',
       cache: 'no-store',
-      headers: headers, // Use the new headers object with potential auth
+      headers: headers,
     });
 
     if (!response.ok) {

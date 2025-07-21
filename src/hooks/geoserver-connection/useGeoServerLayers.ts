@@ -188,7 +188,7 @@ export const useGeoServerLayers = ({
       let olStyle;
       if (styleName) {
         console.log(`[DEBUG] Attempting to fetch style '${styleName}' from GeoServer.`);
-        olStyle = await getStyleFromSld(styleName, urlToUse);
+        olStyle = await getStyleFromSld(layerName, styleName, urlToUse);
         console.log(`[DEBUG] Result from getStyleFromSld:`, olStyle);
       } else {
         console.log(`[DEBUG] No styleName provided. A default style will be used.`);

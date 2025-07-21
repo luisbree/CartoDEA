@@ -6,17 +6,17 @@ import SldParser from "geostyler-sld-parser";
 import type { Style as OlStyle, StyleFunction as OlStyleFunction } from 'ol/style/Style';
 
 // This function fetches an SLD file from a GeoServer, parses it, and returns an OpenLayers style function.
-export async function getStyleFromSld(styleName: string, geoServerUrl: string): Promise<OlStyleFunction | OlStyle | undefined> {
+export async function getStyleFromSld(layerName: string, styleName: string, geoServerUrl: string): Promise<OlStyleFunction | OlStyle | undefined> {
   // Ensure the URL does not have a trailing slash for consistency
   const baseUrl = geoServerUrl.replace(/\/$/, '');
   
-  // Construct the URL to fetch the SLD file using GeoServer's REST API
-  const sldUrl = `${baseUrl}/rest/styles/${styleName}.sld`;
+  // NEW: Use WMS GetStyles request instead of REST API
+  const getStylesUrl = `${baseUrl}/wms?service=WMS&version=1.1.0&request=GetStyles&layers=${layerName}&styles=${styleName}`;
 
   // Use the application's proxy to bypass CORS issues
-  const proxyUrl = `/api/geoserver-proxy?url=${encodeURIComponent(sldUrl)}&cacheBust=${Date.now()}`;
+  const proxyUrl = `/api/geoserver-proxy?url=${encodeURIComponent(getStylesUrl)}&cacheBust=${Date.now()}`;
   
-  console.log(`[DEBUG] getStyleFromSld: Fetching SLD from proxy URL: ${proxyUrl}`);
+  console.log(`[DEBUG] getStyleFromSld: Fetching SLD via GetStyles from proxy URL: ${proxyUrl}`);
   
   try {
     const response = await fetch(proxyUrl);
@@ -29,8 +29,8 @@ export async function getStyleFromSld(styleName: string, geoServerUrl: string): 
     }
     const sldString = await response.text();
     
-    if (sldString.toLowerCase().includes('nosuchstyle')) {
-      console.warn(`[DEBUG] SLD style '${styleName}' not found on GeoServer.`);
+    if (sldString.toLowerCase().includes('serviceexception')) {
+      console.warn(`[DEBUG] GeoServer returned a service exception for style '${styleName}'. It may not exist or apply to layer '${layerName}'.`);
       return undefined;
     }
 
@@ -70,4 +70,3 @@ export async function getStyleFromSld(styleName: string, geoServerUrl: string): 
     return undefined; // Return undefined on error to allow fallback to default styles
   }
 }
-
