@@ -33,6 +33,7 @@ export interface GeoServerDiscoveredLayer {
   name: string;
   title: string;
   bbox?: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
+  styleName?: string;
   wmsAddedToMap: boolean;
   wfsAddedToMap: boolean;
 }

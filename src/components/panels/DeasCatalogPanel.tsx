@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useMemo } from 'react';
@@ -16,6 +15,7 @@ interface DeasCatalogPanelProps {
     onMouseDownHeader: (e: React.MouseEvent<HTMLDivElement>) => void;
     discoveredLayers: GeoServerDiscoveredLayer[];
     onLayerToggle: (layer: GeoServerDiscoveredLayer, isVisible: boolean) => void;
+    onAddWfsLayer: (layer: GeoServerDiscoveredLayer) => void;
     style?: React.CSSProperties;
 }
 
@@ -27,6 +27,7 @@ const DeasCatalogPanel: React.FC<DeasCatalogPanelProps> = ({
     onMouseDownHeader,
     discoveredLayers,
     onLayerToggle,
+    onAddWfsLayer,
     style,
 }) => {
     const groupedLayers = useMemo(() => {
@@ -35,14 +36,12 @@ const DeasCatalogPanel: React.FC<DeasCatalogPanelProps> = ({
             if (!acc[workspace]) {
                 acc[workspace] = [];
             }
-            // Use the layer title provided by GeoServer, fall back to name part if empty
             const layerTitle = layer.title || rest.join(':').replace(/_/g, ' ') || workspace;
             acc[workspace].push({ ...layer, title: layerTitle });
             return acc;
         }, {});
     }, [discoveredLayers]);
 
-    // Sort workspaces alphabetically
     const sortedWorkspaces = Object.keys(groupedLayers).sort((a, b) => a.localeCompare(b));
 
     const sortedGroupedLayers = sortedWorkspaces.reduce<Record<string, GeoServerDiscoveredLayer[]>>((acc, key) => {
@@ -72,6 +71,7 @@ const DeasCatalogPanel: React.FC<DeasCatalogPanelProps> = ({
                      <DeasLayerTree
                         groupedLayers={sortedGroupedLayers}
                         onLayerToggle={onLayerToggle}
+                        onAddWfsLayer={onAddWfsLayer}
                     />
                 ) : (
                     <p className="p-4 text-center text-xs text-gray-400">Cargando capas de DEAS...</p>

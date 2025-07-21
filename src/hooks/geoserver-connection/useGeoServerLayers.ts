@@ -10,6 +10,8 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { useToast } from "@/hooks/use-toast";
 import type { MapLayer, GeoServerDiscoveredLayer } from '@/lib/types';
 import { nanoid } from 'nanoid';
+import { getStyleFromSld } from '@/services/geostyler';
+
 
 interface UseGeoServerLayersProps {
   mapRef: React.RefObject<Map | null>;
@@ -56,8 +58,8 @@ export const useGeoServerLayers = ({
       const discoveredLayers: GeoServerDiscoveredLayer[] = layerNodes.map(node => {
           const name = node.querySelector('Name')?.textContent ?? '';
           const title = node.querySelector('Title')?.textContent ?? name;
+          const styleName = node.querySelector('Style > Name')?.textContent;
           
-          // Look for CRS:84 (lon/lat) first as it's unambiguous
           let bboxNode = node.querySelector('BoundingBox[CRS="CRS:84"]');
           let bbox: [number, number, number, number] | undefined = undefined;
 
@@ -67,10 +69,9 @@ export const useGeoServerLayers = ({
               const maxx = parseFloat(bboxNode.getAttribute('maxx') || '0');
               const maxy = parseFloat(bboxNode.getAttribute('maxy') || '0');
               if (!isNaN(minx) && !isNaN(miny) && !isNaN(maxx) && !isNaN(maxy)) {
-                bbox = [minx, miny, maxx, maxy]; // lon, lat order
+                bbox = [minx, miny, maxx, maxy]; 
               }
           } else {
-              // Fallback to EPSG:4326, assuming WMS 1.3.0 (lat/lon axis order)
               bboxNode = node.querySelector('BoundingBox[CRS="EPSG:4326"]');
               if (bboxNode) {
                   const minx_lat = parseFloat(bboxNode.getAttribute('minx') || '0');
@@ -78,12 +79,12 @@ export const useGeoServerLayers = ({
                   const maxx_lat = parseFloat(bboxNode.getAttribute('maxx') || '0');
                   const maxy_lon = parseFloat(bboxNode.getAttribute('maxy') || '0');
                   if (!isNaN(minx_lat) && !isNaN(miny_lon) && !isNaN(maxx_lat) && !isNaN(maxy_lon)) {
-                    bbox = [miny_lon, minx_lat, maxy_lon, maxx_lat]; // reorder to lon, lat
+                    bbox = [miny_lon, minx_lat, maxy_lon, maxx_lat]; 
                   }
               }
           }
           
-          return { name, title, bbox, wmsAddedToMap: false, wfsAddedToMap: false };
+          return { name, title, bbox, styleName, wmsAddedToMap: false, wfsAddedToMap: false };
       }).filter(l => l.name);
 
       return discoveredLayers;
@@ -135,7 +136,7 @@ export const useGeoServerLayers = ({
     }
   }, [isMapReady, mapRef, addLayer, onLayerStateUpdate, toast]);
   
-  const handleAddGeoServerLayerAsWFS = useCallback(async (layerName: string, layerTitle: string, urlOverride: string) => {
+  const handleAddGeoServerLayerAsWFS = useCallback(async (layerName: string, layerTitle: string, urlOverride: string, styleName?: string) => {
     const urlToUse = urlOverride;
     if (!isMapReady || !urlToUse) return;
 
@@ -180,9 +181,16 @@ export const useGeoServerLayers = ({
       const vectorSource = new VectorSource({
         features: new GeoJSON().readFeatures(geojsonData),
       });
+      
+      let olStyle;
+      if (styleName) {
+        olStyle = await getStyleFromSld(styleName, urlToUse);
+      }
+
 
       const vectorLayer = new VectorLayer({
         source: vectorSource,
+        style: olStyle,
         properties: {
           id: `wfs-${layerName}-${nanoid()}`,
           name: layerTitle || layerName,
