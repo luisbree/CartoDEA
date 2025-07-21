@@ -15,7 +15,7 @@ interface DeasCatalogPanelProps {
     onMouseDownHeader: (e: React.MouseEvent<HTMLDivElement>) => void;
     discoveredLayers: GeoServerDiscoveredLayer[];
     onLayerToggle: (layer: GeoServerDiscoveredLayer, isVisible: boolean) => void;
-    onAddWfsLayer: (layer: GeoServerDiscoveredLayer) => void;
+    onAddWfsLayer: (layer: GeoServerDiscoveredLayer) => void; // Simplified prop
     style?: React.CSSProperties;
 }
 
