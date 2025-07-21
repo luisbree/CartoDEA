@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -569,6 +568,9 @@ export default function GeoMapperClient() {
       }
   }, [handleAddGeoServerLayerToMap, layerManagerHook, initialGeoServerUrl]);
 
+  const handleDeasAddWfsLayer = useCallback((layer: GeoServerDiscoveredLayer) => {
+    handleAddGeoServerLayerAsWFS(layer.name, layer.title, initialGeoServerUrl, layer.styleName);
+  }, [handleAddGeoServerLayerAsWFS, initialGeoServerUrl]);
 
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
@@ -659,7 +661,7 @@ export default function GeoMapperClient() {
                 onMouseDownHeader={(e) => handlePanelMouseDown(e, 'deasCatalog')}
                 discoveredLayers={discoveredGeoServerLayers}
                 onLayerToggle={handleDeasLayerToggle}
-                onAddWfsLayer={(layer) => handleAddGeoServerLayerAsWFS(layer.name, layer.title, initialGeoServerUrl, layer.styleName)}
+                onAddWfsLayer={handleDeasAddWfsLayer}
                 style={{ top: `${panels.deasCatalog.position.y}px`, left: `${panels.deasCatalog.position.x}px`, zIndex: panels.deasCatalog.zIndex }}
             />
         )}
