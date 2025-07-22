@@ -18,6 +18,8 @@ import { transformExtent } from 'ol/proj';
 import { asArray as asOlColorArray } from 'ol/color';
 import GeoJSON from 'ol/format/GeoJSON';
 import KML from 'ol/format/KML';
+import shp from 'shpjs';
+import JSZip from 'jszip';
 
 
 interface UseLayerManagerProps {
@@ -497,7 +499,72 @@ export const useLayerManager = ({
     onSuccess?.();
   }, [selectedFeaturesForExtraction, layers, addLayer, toast, clearSelectionAfterExtraction]);
   
-  const handleExportSelection = useCallback(() => {}, []);
+  const handleExportLayer = useCallback(async (layerId: string, format: 'geojson' | 'kml' | 'shp') => {
+    const layer = layers.find(l => l.id === layerId) as VectorMapLayer | undefined;
+    if (!layer || !(layer.olLayer instanceof VectorLayer)) {
+      toast({ description: "Solo se pueden exportar capas vectoriales." });
+      return;
+    }
+    const source = layer.olLayer.getSource();
+    if (!source || source.getFeatures().length === 0) {
+      toast({ description: "La capa no tiene entidades para exportar." });
+      return;
+    }
+    const features = source.getFeatures();
+    const layerName = layer.name.replace(/ /g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+
+    try {
+      if (format === 'shp') {
+        const geojsonFormat = new GeoJSON({ featureProjection: 'EPSG:4326', dataProjection: 'EPSG:3857' });
+        const geojson = geojsonFormat.writeFeaturesObject(features);
+        const shpBuffer = await shp.write(geojson.features, 'GEOMETRY', {});
+        const zip = new JSZip();
+        zip.file(`${layerName}.zip`, shpBuffer);
+        const content = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = `${layerName}_shp.zip`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        link.remove();
+      } else {
+        let textData: string;
+        let mimeType: string;
+        let extension: string;
+
+        if (format === 'geojson') {
+          const geojsonFormat = new GeoJSON({ featureProjection: 'EPSG:4326', dataProjection: 'EPSG:3857' });
+          textData = geojsonFormat.writeFeatures(features, {
+            decimals: 7,
+          });
+          mimeType = 'application/geo+json';
+          extension = 'geojson';
+        } else { // kml
+          const kmlFormat = new KML({ extractStyles: true, showPointNames: true });
+          textData = kmlFormat.writeFeatures(features, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857',
+            decimals: 7,
+          });
+          mimeType = 'application/vnd.google-earth.kml+xml';
+          extension = 'kml';
+        }
+
+        const blob = new Blob([textData], { type: mimeType });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${layerName}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
+      toast({ description: `Capa "${layer.name}" exportada como ${format.toUpperCase()}.` });
+    } catch (error) {
+      console.error(`Error exporting as ${format}:`, error);
+      toast({ description: `Error al exportar la capa como ${format.toUpperCase()}.`, variant: "destructive" });
+    }
+  }, [layers, toast]);
 
   const findSentinel2FootprintsInCurrentView = useCallback(async (dateRange?: { startDate?: string; completionDate?: string }) => {
     if (!mapRef.current) return;
@@ -627,7 +694,7 @@ export const useLayerManager = ({
     isDrawingSourceEmptyOrNotPolygon,
     handleExtractByPolygon,
     handleExtractBySelection,
-    handleExportSelection,
+    handleExportLayer,
     findSentinel2FootprintsInCurrentView,
     isFindingSentinelFootprints,
     clearSentinel2FootprintsLayer,

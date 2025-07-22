@@ -35,6 +35,7 @@ interface LayerItemProps {
   isDrawingSourceEmptyOrNotPolygon: boolean;
   isSelectionEmpty: boolean;
   onSetLayerOpacity: (layerId: string, opacity: number) => void;
+  onExportLayer: (layerId: string, format: 'geojson' | 'kml' | 'shp') => void;
   
   // Drag and Drop props
   isDraggable: boolean;
@@ -63,6 +64,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   isDrawingSourceEmptyOrNotPolygon,
   isSelectionEmpty,
   onSetLayerOpacity,
+  onExportLayer,
   isDraggable,
   onDragStart,
   onDragEnd,
@@ -157,32 +159,50 @@ const LayerItem: React.FC<LayerItemProps> = ({
             )}
 
             {isVectorLayer && (
-              <DropdownMenuItem
-                className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                onSelect={() => onExtractByPolygon(layer.id)}
-                disabled={isDrawingSourceEmptyOrNotPolygon}
-              >
-                <Scissors className="mr-2 h-3.5 w-3.5" />
-                <span title={isDrawingSourceEmptyOrNotPolygon ? "Dibuje un polígono primero" : `Extraer de ${layer.name} por polígono`}>
-                  Extraer por polígono
-                </span>
-              </DropdownMenuItem>
+               <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer data-[state=open]:bg-gray-600">
+                  <Download className="mr-2 h-3.5 w-3.5" />
+                  <span>Exportar Capa</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="bg-gray-700 text-white border-gray-600">
+                    <DropdownMenuItem onSelect={() => onExportLayer(layer.id, 'geojson')} className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer">GeoJSON</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => onExportLayer(layer.id, 'kml')} className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer">KML</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => onExportLayer(layer.id, 'shp')} className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer">Shapefile (.zip)</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
             )}
-            
-            {isVectorLayer && (
-              <DropdownMenuItem
-                className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                onSelect={() => onExtractBySelection()}
-                disabled={isSelectionEmpty}
-              >
-                <CopyPlus className="mr-2 h-3.5 w-3.5" />
-                <span title={isSelectionEmpty ? "Seleccione una o más entidades primero" : `Crear una nueva capa a partir de la selección actual`}>
-                  Crear capa desde selección
-                </span>
-              </DropdownMenuItem>
-            )}
-            
+
             <DropdownMenuSeparator className="bg-gray-500/50" />
+
+            {isVectorLayer && (
+              <>
+                <DropdownMenuItem
+                  className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onSelect={() => onExtractByPolygon(layer.id)}
+                  disabled={isDrawingSourceEmptyOrNotPolygon}
+                >
+                  <Scissors className="mr-2 h-3.5 w-3.5" />
+                  <span title={isDrawingSourceEmptyOrNotPolygon ? "Dibuje un polígono primero" : `Extraer de ${layer.name} por polígono`}>
+                    Extraer por polígono
+                  </span>
+                </DropdownMenuItem>
+            
+                <DropdownMenuItem
+                  className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  onSelect={() => onExtractBySelection()}
+                  disabled={isSelectionEmpty}
+                >
+                  <CopyPlus className="mr-2 h-3.5 w-3.5" />
+                  <span title={isSelectionEmpty ? "Seleccione una o más entidades primero" : `Crear una nueva capa a partir de la selección actual`}>
+                    Crear capa desde selección
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-gray-500/50" />
+              </>
+            )}
+            
             <DropdownMenuLabel className="text-xs text-gray-300 px-2 py-1 flex items-center">
                 <Percent className="mr-2 h-3.5 w-3.5" /> Opacidad: {currentOpacityPercentage}%
             </DropdownMenuLabel>

@@ -681,6 +681,7 @@ export default function GeoMapperClient() {
             }}
             onExtractByPolygon={(layerId) => layerManagerHook.handleExtractByPolygon(layerId)}
             onExtractBySelection={layerManagerHook.handleExtractBySelection}
+            onExportLayer={layerManagerHook.handleExportLayer}
             isDrawingSourceEmptyOrNotPolygon={layerManagerHook.isDrawingSourceEmptyOrNotPolygon}
             isSelectionEmpty={featureInspectionHook.selectedFeatures.length === 0}
             onSetLayerOpacity={layerManagerHook.setLayerOpacity}

@@ -14,7 +14,7 @@ interface LayerListProps {
   onRemoveLayer: (layerId: string) => void;
   onExtractByPolygon: (layerId: string) => void;
   onExtractBySelection: () => void;
-  onExportSelection: (format: 'geojson' | 'kml') => void;
+  onExportLayer: (layerId: string, format: 'geojson' | 'kml' | 'shp') => void;
   isDrawingSourceEmptyOrNotPolygon: boolean;
   isSelectionEmpty: boolean;
   onSetLayerOpacity: (layerId: string, opacity: number) => void;
@@ -33,7 +33,7 @@ const LayerList: React.FC<LayerListProps> = ({
   onRemoveLayer,
   onExtractByPolygon,
   onExtractBySelection,
-  onExportSelection,
+  onExportLayer,
   isDrawingSourceEmptyOrNotPolygon,
   isSelectionEmpty,
   onSetLayerOpacity,
@@ -125,7 +125,7 @@ const LayerList: React.FC<LayerListProps> = ({
           onRemove={onRemoveLayer}
           onExtractByPolygon={onExtractByPolygon}
           onExtractBySelection={onExtractBySelection}
-          onExportSelection={onExportSelection}
+          onExportLayer={onExportLayer}
           isDrawingSourceEmptyOrNotPolygon={isDrawingSourceEmptyOrNotPolygon}
           isSelectionEmpty={isSelectionEmpty}
           onSetLayerOpacity={onSetLayerOpacity}
