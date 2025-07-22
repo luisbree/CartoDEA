@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState, useCallback } from 'react';
 import type { Map } from 'ol';
 import VectorSource from 'ol/source/Vector';
 import { useToast } from "@/hooks/use-toast";
-import type { MapLayer, OSMCategoryConfig } from '@/lib/types';
+import type { MapLayer } from '@/lib/types';
 import { nanoid } from 'nanoid';
 import { transformExtent, type Extent } from 'ol/proj';
 import { get as getProjection } from 'ol/proj';
@@ -30,7 +29,6 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
   const [isFetchingOSM, setIsFetchingOSM] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedOSMCategoryIds, setSelectedOSMCategoryIds] = useState<string[]>(['watercourses', 'water_bodies']);
-  const [downloadFormat, setDownloadFormat] = useState('geojson');
 
   const fetchAndProcessOSMData = useCallback(async (extent: Extent, categoryIds: string[]) => {
     if (categoryIds.length === 0) {
@@ -80,7 +78,7 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
                     if (coordinates.length >= 4 && first[0] === last[0] && first[1] === last[1]) {
                         geometry = { type: 'Polygon', coordinates: [coordinates] };
                     } else {
-                        geometry = { type: 'LineString', coordinates: coordinates };
+                        geometry = { type: 'LineString', coordinates: [coordinates] };
                     }
                 }
             }
@@ -187,7 +185,7 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
   }, [mapRef, toast, fetchAndProcessOSMData]);
 
 
-  const handleDownloadOSMLayers = useCallback(async (currentLayers: MapLayer[]) => {
+  const handleDownloadOSMLayers = useCallback(async (currentLayers: MapLayer[], format: 'geojson' | 'kml' | 'shp') => {
       const osmLayers = currentLayers.filter(l => l.type === 'osm' && 'getSource' in l.olLayer);
       if (osmLayers.length === 0) {
           toast({ description: "No hay capas OSM para descargar." });
@@ -200,7 +198,7 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
               dataProjection: 'EPSG:4326'
           });
 
-          if (downloadFormat === 'shp') {
+          if (format === 'shp') {
               const zip = new JSZip();
               for (const layer of osmLayers) {
                   const vectorLayer = layer.olLayer as VectorLayer<any>;
@@ -217,31 +215,34 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
 
           } else { 
               let combinedString = '';
-              let fileExtension = downloadFormat;
+              let fileExtension = format;
+              let mimeType = 'text/plain';
 
-              if (downloadFormat === 'geojson') {
+              if (format === 'geojson') {
                   const allFeatures = osmLayers.flatMap(l => (l.olLayer as VectorLayer<any>).getSource().getFeatures());
                   combinedString = geojsonFormat.writeFeatures(allFeatures);
-              } else if (downloadFormat === 'kml') {
+                  mimeType = 'application/geo+json';
+              } else if (format === 'kml') {
                   const kmlFormat = new KML({ extractStyles: true });
                   const allFeatures = osmLayers.flatMap(l => (l.olLayer as VectorLayer<any>).getSource().getFeatures());
                   combinedString = kmlFormat.writeFeatures(allFeatures);
+                  mimeType = 'application/vnd.google-earth.kml+xml';
               }
               
-              const blob = new Blob([combinedString], { type: 'text/plain' });
+              const blob = new Blob([combinedString], { type: mimeType });
               const link = document.createElement('a');
               link.href = URL.createObjectURL(blob);
               link.download = `osm_layers.${fileExtension}`;
               link.click();
           }
-          toast({ description: `Capas OSM descargadas como ${downloadFormat.toUpperCase()}.` });
+          toast({ description: `Capas OSM descargadas como ${format.toUpperCase()}.` });
       } catch (error: any) {
           console.error("Error downloading OSM layers:", error);
           toast({ description: `Error al descargar: ${error.message}` });
       } finally {
           setIsDownloading(false);
       }
-  }, [downloadFormat, toast]);
+  }, [toast]);
 
 
   return {
@@ -250,9 +251,7 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
     setSelectedOSMCategoryIds,
     fetchOSMData,
     fetchOSMForCurrentView,
-    downloadFormat,
-    setDownloadFormat,
     isDownloading,
-    handleDownloadOSMLayers,
+    handleDownloadOSMLayers: handleDownloadOSMLayers,
   };
 };

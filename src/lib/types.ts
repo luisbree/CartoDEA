@@ -1,4 +1,3 @@
-
 import type { default as Layer } from 'ol/layer/Layer';
 import type VectorLayer from 'ol/layer/Vector';
 import type VectorSource from 'ol/source/Vector';
@@ -68,5 +67,3 @@ export interface NominatimResult {
   importance: number;
   icon?: string;
 }
-
-    

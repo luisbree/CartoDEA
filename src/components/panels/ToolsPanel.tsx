@@ -39,8 +39,6 @@ interface ToolsPanelProps {
   osmCategoriesForSelection: OSMCategory[];
   selectedOSMCategoryIds: string[];
   onSelectedOSMCategoriesChange: (ids: string[]) => void;
-  downloadFormat: string;
-  onDownloadFormatChange: (format: string) => void;
   isDownloading: boolean;
   onDownloadOSMLayers: () => void;
   style?: React.CSSProperties; // Added for position and zIndex
@@ -61,7 +59,7 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
   activeDrawTool, onToggleDrawingTool, onClearDrawnFeatures, onSaveDrawnFeaturesAsKML,
   isFetchingOSM, onFetchOSMDataTrigger, osmCategoriesForSelection, selectedOSMCategoryIds, 
   onSelectedOSMCategoriesChange,
-  downloadFormat, onDownloadFormatChange, isDownloading, onDownloadOSMLayers,
+  isDownloading, onDownloadOSMLayers,
   style, // Destructure style
 }) => {
 
@@ -115,8 +113,6 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                 <OSMDownloadOptions
                     isFetchingOSM={isFetchingOSM}
                     onFetchOSMDataTrigger={onFetchOSMDataTrigger}
-                    downloadFormat={downloadFormat}
-                    onDownloadFormatChange={onDownloadFormatChange}
                     isDownloading={isDownloading}
                     onDownloadOSMLayers={onDownloadOSMLayers}
                 />

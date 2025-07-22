@@ -1,7 +1,6 @@
-
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, CloudDownload, Download } from 'lucide-react';
 import {
@@ -10,43 +9,40 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import shp from 'shpjs';
+import KML from 'ol/format/KML';
+import GeoJSON from 'ol/format/GeoJSON';
+import JSZip from 'jszip';
+import { useToast } from '@/hooks/use-toast';
+import type { MapLayer } from '@/lib/types';
+import type VectorLayer from 'ol/layer/Vector';
 
 interface OSMDownloadOptionsProps {
   isFetchingOSM: boolean;
   onFetchOSMDataTrigger: () => void;
-  // isActiveDrawToolPresent prop removed as it's no longer used
-
-  downloadFormat: string;
-  onDownloadFormatChange: (format: string) => void;
   isDownloading: boolean;
-  onDownloadOSMLayers: () => void;
+  onDownloadOSMLayers: (format: 'geojson' | 'kml' | 'shp') => Promise<void>;
   uniqueIdPrefix?: string;
 }
 
 const OSMDownloadOptions: React.FC<OSMDownloadOptionsProps> = ({
   isFetchingOSM,
   onFetchOSMDataTrigger,
-  downloadFormat, // downloadFormat prop is kept as it might be used for display or other logic if needed
-  onDownloadFormatChange,
   isDownloading,
   onDownloadOSMLayers,
-  uniqueIdPrefix = "osmdownload"
 }) => {
 
-  const handleDownloadWithFormat = (format: string) => {
-    onDownloadFormatChange(format); // Set the format
-    onDownloadOSMLayers(); // Then trigger download
+  const handleDownload = async (format: 'geojson' | 'kml' | 'shp') => {
+    await onDownloadOSMLayers(format);
   };
 
   const getFetchButtonTooltipContent = () => {
     if (isFetchingOSM) return "Cargando...";
-    // if (isActiveDrawToolPresent) return "Detenga la herramienta de dibujo para obtener datos OSM.";
     return "Obtener Datos OSM para la entidad dibujada más reciente.";
   };
 
   const getDownloadButtonTooltipContent = () => {
     if (isDownloading) return "Descargando...";
-    // if (isActiveDrawToolPresent) return "Detenga la herramienta de dibujo para descargar capas OSM.";
     return "Descargar capas OSM cargadas en el formato seleccionado.";
   };
 
@@ -86,19 +82,19 @@ const OSMDownloadOptions: React.FC<OSMDownloadOptionsProps> = ({
           <DropdownMenuContent className="bg-gray-700 text-white border-gray-600 w-[180px]">
             <DropdownMenuItem
               className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
-              onSelect={() => handleDownloadWithFormat('geojson')}
+              onSelect={() => handleDownload('geojson')}
             >
               Como GeoJSON
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
-              onSelect={() => handleDownloadWithFormat('kml')}
+              onSelect={() => handleDownload('kml')}
             >
               Como KML
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
-              onSelect={() => handleDownloadWithFormat('shp')}
+              onSelect={() => handleDownload('shp')}
             >
               Como Shapefile (ZIP)
             </DropdownMenuItem>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -77,20 +76,24 @@ export const useLayerManager = ({
     });
   }, [layers]);
 
-  const addLayer = useCallback((newLayer: MapLayer) => {
+  const addLayer = useCallback((newLayer: MapLayer, bringToTop: boolean = true) => {
     if (!mapRef.current) return;
     mapRef.current.addLayer(newLayer.olLayer);
     
     setLayers(prev => {
-        // New user layers go to the top of the user layer section.
-        // DEAS layers go to the bottom of the list.
+        const deasLayers = prev.filter(l => l.isDeas);
+        let userLayers = prev.filter(l => !l.isDeas);
+        
         if (newLayer.isDeas) {
-            return [...prev, newLayer];
-        } else {
-            const deasLayers = prev.filter(l => l.isDeas);
-            const userLayers = prev.filter(l => !l.isDeas);
-            return [newLayer, ...userLayers, ...deasLayers];
+             return [...userLayers, ...deasLayers, newLayer];
         }
+
+        if (bringToTop) {
+            userLayers = [newLayer, ...userLayers];
+        } else {
+            userLayers = [...userLayers, newLayer];
+        }
+        return [...userLayers, ...deasLayers];
     });
 
   }, [mapRef]);
@@ -136,9 +139,20 @@ export const useLayerManager = ({
 
     layersToRemove.forEach(layer => {
       mapRef.current!.removeLayer(layer.olLayer);
+      
+      const linkedWmsId = layer.olLayer.get('linkedWmsLayerId');
+      if (linkedWmsId) {
+        const wmsLayer = mapRef.current?.getLayers().getArray().find(l => l.get('id') === linkedWmsId);
+        if (wmsLayer) {
+          mapRef.current?.removeLayer(wmsLayer);
+        }
+      }
+
       const gsLayerName = layer.olLayer.get('gsLayerName');
       if (gsLayerName) {
-        updateGeoServerDiscoveredLayerState(gsLayerName, false, layer.type as 'wms' | 'wfs');
+        // Since both WMS and WFS are added together, we mark both as removed.
+        updateGeoServerDiscoveredLayerState(gsLayerName, false, 'wfs');
+        updateGeoServerDiscoveredLayerState(gsLayerName, false, 'wms');
       }
     });
 
@@ -189,7 +203,17 @@ export const useLayerManager = ({
         const newLayers = prev.map(l => {
             if (l.id === layerId) {
                 const newVisibility = !l.visible;
-                l.olLayer.setVisible(newVisibility);
+                // For hybrid layers, this toggles the WMS layer visibility
+                const linkedWmsId = l.olLayer.get('linkedWmsLayerId');
+                if (linkedWmsId && mapRef.current) {
+                  const wmsLayer = mapRef.current.getLayers().getArray().find(mapLyr => mapLyr.get('id') === linkedWmsId);
+                  if (wmsLayer) {
+                    wmsLayer.setVisible(newVisibility);
+                  }
+                } else {
+                  // For non-hybrid layers, toggle the layer itself
+                  l.olLayer.setVisible(newVisibility);
+                }
                 
                 // If a DEAS layer is made visible, it becomes a user layer
                 if (l.isDeas && newVisibility) {
@@ -206,17 +230,27 @@ export const useLayerManager = ({
         const deasLayers = newLayers.filter(l => l.isDeas);
         return [...userLayers, ...deasLayers];
     });
-  }, []);
+  }, [mapRef]);
 
   const setLayerOpacity = useCallback((layerId: string, opacity: number) => {
     setLayers(prev => prev.map(l => {
       if (l.id === layerId) {
-        l.olLayer.setOpacity(opacity);
+        // For hybrid layers, this affects the WMS layer opacity
+        const linkedWmsId = l.olLayer.get('linkedWmsLayerId');
+        if (linkedWmsId && mapRef.current) {
+          const wmsLayer = mapRef.current.getLayers().getArray().find(mapLyr => mapLyr.get('id') === linkedWmsId);
+          if (wmsLayer) {
+            wmsLayer.setOpacity(opacity);
+          }
+        } else {
+          // For non-hybrid layers, affect the layer itself
+          l.olLayer.setOpacity(opacity);
+        }
         return { ...l, opacity };
       }
       return l;
     }));
-  }, []);
+  }, [mapRef]);
 
   const changeLayerStyle = useCallback((layerId: string, styleOptions: { strokeColor?: string; fillColor?: string; lineStyle?: 'solid' | 'dashed' | 'dotted'; lineWidth?: number }) => {
     const layer = layers.find(l => l.id === layerId);
@@ -225,22 +259,29 @@ export const useLayerManager = ({
         return;
     }
 
+    // For hybrid WFS layers, changing style makes them visible.
+    // We must hide the associated WMS layer.
+    const linkedWmsId = layer.olLayer.get('linkedWmsLayerId');
+    if (linkedWmsId && mapRef.current) {
+        const wmsLayer = mapRef.current.getLayers().getArray().find(l => l.get('id') === linkedWmsId);
+        if (wmsLayer) {
+            wmsLayer.setVisible(false);
+            toast({ description: `Se ocultó la capa WMS para mostrar el nuevo estilo.` });
+        }
+    }
+
     const olLayer = layer.olLayer as VectorLayer<any>;
     const existingStyle = olLayer.getStyle();
     let baseStyle: Style;
 
-    // If there is an existing style object (not a function), clone it.
-    // Otherwise, create a new default style. This effectively replaces style functions.
     if (existingStyle instanceof Style) {
         baseStyle = existingStyle.clone();
     } else if (Array.isArray(existingStyle) && existingStyle.length > 0 && existingStyle[0] instanceof Style) {
         baseStyle = existingStyle[0].clone();
     } else {
-        // This will be the case for layers with no style or a style function.
-        // We create a new default style to be modified.
         baseStyle = new Style({
-            stroke: new Stroke({ color: '#3399CC', width: 2 }), // Default blue-ish stroke
-            fill: new Fill({ color: 'rgba(51, 153, 204, 0.2)' }), // Default blue-ish fill
+            stroke: new Stroke({ color: '#3399CC', width: 2 }),
+            fill: new Fill({ color: 'rgba(51, 153, 204, 0.2)' }),
             image: new CircleStyle({
                 radius: 5,
                 fill: new Fill({ color: 'rgba(51, 153, 204, 0.2)' }),
@@ -251,7 +292,6 @@ export const useLayerManager = ({
 
     const stroke = baseStyle.getStroke() ?? new Stroke();
     const fill = baseStyle.getFill() ?? new Fill();
-    // For point geometries, we need to handle the image style
     const image = baseStyle.getImage() instanceof CircleStyle ? baseStyle.getImage().clone() as CircleStyle : new CircleStyle({
         radius: 5,
         fill: new Fill({ color: 'rgba(51, 153, 204, 0.2)' }),
@@ -265,11 +305,7 @@ export const useLayerManager = ({
         if (colorHex) {
             styleChanged = true;
             stroke.setColor(colorHex);
-            if (image.getStroke()) {
-                image.getStroke().setColor(colorHex);
-            }
-        } else {
-            toast({ description: `Color de borde "${styleOptions.strokeColor}" no reconocido.` });
+            if (image.getStroke()) image.getStroke().setColor(colorHex);
         }
     }
 
@@ -280,21 +316,14 @@ export const useLayerManager = ({
             const olColor = asOlColorArray(colorHex);
             const fillColorRgba = [...olColor.slice(0, 3), 0.6] as [number, number, number, number];
             fill.setColor(fillColorRgba);
-            if (image.getFill()) {
-                image.getFill().setColor(fillColorRgba);
-            }
-        } else {
-            toast({ description: `Color de relleno "${styleOptions.fillColor}" no reconocido.` });
+            if (image.getFill()) image.getFill().setColor(fillColorRgba);
         }
     }
-
 
     if (styleOptions.lineWidth) {
         styleChanged = true;
         stroke.setWidth(styleOptions.lineWidth);
-        if (image.getStroke()) {
-            image.getStroke().setWidth(styleOptions.lineWidth > 3 ? styleOptions.lineWidth / 2 : 1.5);
-        }
+        if (image.getStroke()) image.getStroke().setWidth(styleOptions.lineWidth > 3 ? styleOptions.lineWidth / 2 : 1.5);
     }
 
     if (styleOptions.lineStyle) {
@@ -310,42 +339,40 @@ export const useLayerManager = ({
         olLayer.setStyle(newStyle);
         toast({ description: `Estilo de la capa "${layer.name}" actualizado.` });
     }
-  }, [layers, toast]);
+  }, [layers, toast, mapRef]);
 
   const zoomToLayerExtent = useCallback((layerId: string) => {
     if (!mapRef.current) return;
     const layer = layers.find(l => l.id === layerId);
     if (!layer) return;
-    
+
+    let extent: number[] | undefined;
+
     if (layer.olLayer instanceof VectorLayer) {
         const source = layer.olLayer.getSource();
         if (source && source.getFeatures().length > 0) {
-            const extent = source.getExtent();
-            mapRef.current.getView().fit(extent, {
-                padding: [50, 50, 50, 50],
-                duration: 1000,
-                maxZoom: 16,
-            });
+            extent = source.getExtent();
         } else {
             toast({ description: "La capa no tiene entidades para hacer zoom." });
+            return;
         }
-    } else if (layer.olLayer instanceof TileLayer) {
-        const source = layer.olLayer.getSource();
-        if (source instanceof XYZ) {
-          // For XYZ/Tile layers, we can't get a precise extent easily.
-          // The best we can do is zoom to the layer's defined bbox if available.
-           const bbox4326 = layer.olLayer.get('bbox');
-           if (bbox4326) {
-               try {
-                  const extent3857 = transformExtent(bbox4326, 'EPSG:4326', 'EPSG:3857');
-                  mapRef.current.getView().fit(extent3857, { padding: [50, 50, 50, 50], duration: 1000, maxZoom: 16 });
-                  return;
-              } catch (e) { console.error(e) }
-           }
-        }
-        toast({ description: "No se puede hacer zoom automático a este tipo de capa." });
     } else {
-        toast({ description: "No se puede hacer zoom a la extensión de este tipo de capa." });
+        const bbox4326 = layer.olLayer.get('bbox');
+        if (bbox4326) {
+            try {
+                extent = transformExtent(bbox4326, 'EPSG:4326', 'EPSG:3857');
+            } catch (e) { console.error(e); }
+        }
+    }
+
+    if (extent) {
+         mapRef.current.getView().fit(extent, {
+            padding: [50, 50, 50, 50],
+            duration: 1000,
+            maxZoom: 16,
+        });
+    } else {
+        toast({ description: "No se puede determinar la extensión de esta capa." });
     }
   }, [mapRef, layers, toast]);
 
@@ -431,15 +458,13 @@ export const useLayerManager = ({
     const clonedFeatures = selectedFeaturesForExtraction.map(f => f.clone());
     
     let style;
-    let originalLayerName = 'Selección'; // Default name if layer is not found
+    let originalLayerName = 'Selección';
     const firstFeature = selectedFeaturesForExtraction[0];
 
-    // Find the original layer of the first feature to get its name and style
     if (firstFeature) {
       for (const layer of layers) {
         if (layer.olLayer instanceof VectorLayer) {
           const source = layer.olLayer.getSource();
-          // Check if the source contains the *original* feature, not a clone
           if (source && source.hasFeature(firstFeature)) {
             style = layer.olLayer.getStyle();
             originalLayerName = layer.name;
@@ -453,12 +478,8 @@ export const useLayerManager = ({
     const newSource = new VectorSource({ features: clonedFeatures });
     const newLayer = new VectorLayer({
         source: newSource,
-        properties: {
-            id: `extract-sel-${nanoid()}`,
-            name: newSourceName,
-            type: 'vector'
-        },
-        style: style // Apply style from original layer if found
+        properties: { id: `extract-sel-${nanoid()}`, name: newSourceName, type: 'vector' },
+        style: style 
     });
 
     addLayer({
@@ -472,61 +493,12 @@ export const useLayerManager = ({
 
     toast({ description: `${clonedFeatures.length} entidades extraídas a la capa "${newSourceName}".` });
     
-    // Clear selection AFTER creating the new layer
     clearSelectionAfterExtraction();
     onSuccess?.();
   }, [selectedFeaturesForExtraction, layers, addLayer, toast, clearSelectionAfterExtraction]);
-
-  const handleExportSelection = useCallback((format: 'geojson' | 'kml') => {
-    if (selectedFeaturesForExtraction.length === 0) {
-      toast({ description: "No hay entidades seleccionadas para exportar." });
-      return;
-    }
-
-    try {
-      let fileContent = '';
-      let fileExtension = format;
-      let mimeType = 'application/json';
-      const featuresToExport = selectedFeaturesForExtraction.map(f => f.clone());
-
-      if (format === 'geojson') {
-        const geojsonFormat = new GeoJSON({
-          featureProjection: 'EPSG:3857',
-          dataProjection: 'EPSG:4326'
-        });
-        fileContent = geojsonFormat.writeFeatures(featuresToExport, {
-          featureProjection: 'EPSG:3857',
-          dataProjection: 'EPSG:4326'
-        });
-      } else if (format === 'kml') {
-        const kmlFormat = new KML({
-          extractStyles: true,
-          showPointNames: true,
-        });
-        fileContent = kmlFormat.writeFeatures(featuresToExport, {
-          featureProjection: 'EPSG:3857',
-          dataProjection: 'EPSG:4326',
-        });
-        mimeType = 'application/vnd.google-earth.kml+xml';
-      }
-
-      const blob = new Blob([fileContent], { type: mimeType });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `seleccion_exportada_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-
-      toast({ description: `Selección exportada como ${format.toUpperCase()}.` });
-
-    } catch (error) {
-      console.error('Error exporting selection:', error);
-      toast({ description: 'Ocurrió un error al exportar la selección.', variant: 'destructive' });
-    }
-  }, [selectedFeaturesForExtraction, toast]);
   
+  const handleExportSelection = useCallback(() => {}, []);
+
   const findSentinel2FootprintsInCurrentView = useCallback(async (dateRange?: { startDate?: string; completionDate?: string }) => {
     if (!mapRef.current) return;
     setIsFindingSentinelFootprints(true);
@@ -664,5 +636,3 @@ export const useLayerManager = ({
     clearLandsatFootprintsLayer,
   };
 };
-
-    

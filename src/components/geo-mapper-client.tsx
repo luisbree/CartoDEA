@@ -215,7 +215,7 @@ export default function GeoMapperClient() {
   });
   
   const {
-    handleAddGeoServerLayerToMap, handleAddGeoServerLayerAsWFS, handleFetchGeoServerLayers,
+    handleFetchGeoServerLayers, handleAddHybridLayer,
   } = useGeoServerLayers({
       mapRef,
       isMapReady,
@@ -400,34 +400,21 @@ export default function GeoMapperClient() {
       }
     }
 
-    if (action.layersToAdd && action.layersToAdd.length > 0) {
-      action.layersToAdd.forEach(layerNameToAdd => {
-        const layerData = discoveredGeoServerLayers.find(l => l.name === layerNameToAdd);
-        if (layerData) {
-            handleAddGeoServerLayerToMap(layerData.name, layerData.title, true, initialGeoServerUrl, layerData.bbox);
-        } else {
-            toast({
-                title: "Capa WMS no encontrada",
-                description: `Drax intentó añadir una capa que no existe: "${layerNameToAdd}"`,
-                variant: 'destructive'
-            });
-        }
-      });
-    }
-
-    if (action.layersToAddAsWFS && action.layersToAddAsWFS.length > 0) {
-      action.layersToAddAsWFS.forEach(layerNameToAdd => {
-        const layerData = discoveredGeoServerLayers.find(l => l.name === layerNameToAdd);
-        if (layerData) {
-            handleAddGeoServerLayerAsWFS(layerData.name, layerData.title, initialGeoServerUrl, layerData.styleName);
-        } else {
-            toast({
-                title: "Capa WFS no encontrada",
-                description: `Drax intentó añadir una capa que no existe: "${layerNameToAdd}"`,
-                variant: 'destructive'
-            });
-        }
-      });
+    // Logic for layersToAdd and layersToAddAsWFS now calls handleAddHybridLayer
+    const layersToAddHybrid = (action.layersToAdd || []).concat(action.layersToAddAsWFS || []);
+    if (layersToAddHybrid.length > 0) {
+        layersToAddHybrid.forEach(layerNameToAdd => {
+            const layerData = discoveredGeoServerLayers.find(l => l.name === layerNameToAdd);
+            if (layerData) {
+                handleAddHybridLayer(layerData.name, layerData.title, initialGeoServerUrl, layerData.bbox);
+            } else {
+                toast({
+                    title: "Capa no encontrada",
+                    description: `Drax intentó añadir una capa que no existe: "${layerNameToAdd}"`,
+                    variant: 'destructive'
+                });
+            }
+        });
     }
 
     if (action.layersToRemove && action.layersToRemove.length > 0) {
@@ -536,7 +523,7 @@ export default function GeoMapperClient() {
       toast({ description: `Abriendo Trello en una nueva pestaña...` });
     }
 
-  }, [discoveredGeoServerLayers, handleAddGeoServerLayerToMap, handleAddGeoServerLayerAsWFS, toast, layerManagerHook, zoomToBoundingBox, handleChangeBaseLayer, osmDataHook, initialGeoServerUrl]);
+  }, [discoveredGeoServerLayers, handleAddHybridLayer, toast, layerManagerHook, zoomToBoundingBox, handleChangeBaseLayer, osmDataHook, initialGeoServerUrl]);
 
   const handleSearchTrelloCard = useCallback(async (searchTerm: string) => {
     setIsTrelloLoading(true);
@@ -555,22 +542,9 @@ export default function GeoMapperClient() {
     }
   }, [toast]);
 
-  const handleDeasLayerToggle = useCallback((layer: GeoServerDiscoveredLayer, isChecked: boolean) => {
-      if (isChecked) {
-          handleAddGeoServerLayerToMap(layer.name, layer.title, true, initialGeoServerUrl, layer.bbox);
-      } else {
-          const layerToRemove = layerManagerHook.layers.find(
-              (activeLayer) => activeLayer.olLayer.get('gsLayerName') === layer.name
-          );
-          if (layerToRemove) {
-              layerManagerHook.removeLayer(layerToRemove.id);
-          }
-      }
-  }, [handleAddGeoServerLayerToMap, layerManagerHook, initialGeoServerUrl]);
-
   const handleDeasAddWfsLayer = useCallback((layer: GeoServerDiscoveredLayer) => {
-    handleAddGeoServerLayerAsWFS(layer.name, layer.title, initialGeoServerUrl, layer.styleName);
-  }, [handleAddGeoServerLayerAsWFS, initialGeoServerUrl]);
+    handleAddHybridLayer(layer.name, layer.title, initialGeoServerUrl, layer.bbox);
+  }, [handleAddHybridLayer, initialGeoServerUrl]);
 
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
@@ -660,7 +634,6 @@ export default function GeoMapperClient() {
                 onClosePanel={() => togglePanelMinimize('deasCatalog')}
                 onMouseDownHeader={(e) => handlePanelMouseDown(e, 'deasCatalog')}
                 discoveredLayers={discoveredGeoServerLayers}
-                onLayerToggle={handleDeasLayerToggle}
                 onAddWfsLayer={handleDeasAddWfsLayer}
                 style={{ top: `${panels.deasCatalog.position.y}px`, left: `${panels.deasCatalog.position.x}px`, zIndex: panels.deasCatalog.zIndex }}
             />
@@ -682,8 +655,6 @@ export default function GeoMapperClient() {
             osmCategoriesForSelection={osmCategoriesForSelection}
             selectedOSMCategoryIds={osmDataHook.selectedOSMCategoryIds}
             onSelectedOSMCategoriesChange={osmDataHook.setSelectedOSMCategoryIds}
-            downloadFormat={osmDataHook.downloadFormat}
-            onDownloadFormatChange={osmDataHook.setDownloadFormat}
             isDownloading={osmDataHook.isDownloading}
             onDownloadOSMLayers={() => osmDataHook.handleDownloadOSMLayers(layerManagerHook.layers)}
             style={{ top: `${panels.tools.position.y}px`, left: `${panels.tools.position.x}px`, zIndex: panels.tools.zIndex }}
@@ -710,7 +681,6 @@ export default function GeoMapperClient() {
             }}
             onExtractByPolygon={(layerId) => layerManagerHook.handleExtractByPolygon(layerId)}
             onExtractBySelection={layerManagerHook.handleExtractBySelection}
-            onExportSelection={layerManagerHook.handleExportSelection}
             isDrawingSourceEmptyOrNotPolygon={layerManagerHook.isDrawingSourceEmptyOrNotPolygon}
             isSelectionEmpty={featureInspectionHook.selectedFeatures.length === 0}
             onSetLayerOpacity={layerManagerHook.setLayerOpacity}

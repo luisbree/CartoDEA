@@ -32,7 +32,6 @@ interface LayerItemProps {
   onRemove: (layerId: string) => void;
   onExtractByPolygon: (layerId: string) => void;
   onExtractBySelection: () => void;
-  onExportSelection: (format: 'geojson' | 'kml') => void;
   isDrawingSourceEmptyOrNotPolygon: boolean;
   isSelectionEmpty: boolean;
   onSetLayerOpacity: (layerId: string, opacity: number) => void;
@@ -61,7 +60,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onRemove,
   onExtractByPolygon,
   onExtractBySelection,
-  onExportSelection,
   isDrawingSourceEmptyOrNotPolygon,
   isSelectionEmpty,
   onSetLayerOpacity,
@@ -78,33 +76,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onClick,
 }) => {
   const isVectorLayer = layer.olLayer instanceof VectorLayer;
-  const isWmsLayer = layer.olLayer instanceof TileLayer && layer.olLayer.getSource() instanceof TileWMS;
+  const isHybridWfs = layer.type === 'wfs' && layer.olLayer.get('linkedWmsLayerId');
   const currentOpacityPercentage = Math.round(layer.opacity * 100);
-
-  const buildLegendUrl = () => {
-    if (isWmsLayer) {
-      const gsLayerName = layer.olLayer.get('gsLayerName');
-      const gsServerUrl = layer.olLayer.get('gsServerUrl');
-      
-      if (gsLayerName && gsServerUrl) {
-        // Construct the GetLegendGraphic URL manually
-        const url = new URL(`${gsServerUrl}/wms`);
-        url.searchParams.set('REQUEST', 'GetLegendGraphic');
-        url.searchParams.set('VERSION', '1.1.0');
-        url.searchParams.set('FORMAT', 'image/png');
-        url.searchParams.set('WIDTH', '20');
-        url.searchParams.set('HEIGHT', '20');
-        url.searchParams.set('LAYER', gsLayerName);
-        
-        // Return the URL to be used with the proxy
-        return `/api/geoserver-proxy?url=${encodeURIComponent(url.toString())}`;
-      }
-    }
-    return null;
-  };
-
-  const legendUrl = buildLegendUrl();
-
 
   return (
     <li 
@@ -127,28 +100,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
     >
       {isDraggable && <GripVertical className="h-4 w-4 text-gray-500 mr-1 flex-shrink-0" />}
       
-      {legendUrl ? (
-        <Popover>
-          <PopoverTrigger asChild>
-             <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => { e.stopPropagation(); }}
-                className="h-6 w-6 text-white hover:bg-gray-600/80 p-0 mr-2 flex-shrink-0"
-                aria-label={`Ver leyenda para ${layer.name}`}
-                title="Ver leyenda"
-              >
-                <Info className="h-3.5 w-3.5" />
-             </Button>
-          </PopoverTrigger>
-          <PopoverContent side="right" align="start" className="w-auto p-0 border-gray-600 bg-gray-800">
-            <img src={legendUrl} alt={`Leyenda para ${layer.name}`} className="max-w-xs max-h-48" />
-          </PopoverContent>
-        </Popover>
-      ) : (
-         <div className="w-6 h-6 mr-2 flex-shrink-0" /> // Placeholder to keep alignment
-      )}
-
+      {/* Placeholder for alignment, as legend is no longer needed with hybrid approach */}
+      {!isDraggable && <div className="w-5 h-5 mr-1 flex-shrink-0" /> }
 
       <Button
         variant="ghost"
@@ -228,34 +181,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 </span>
               </DropdownMenuItem>
             )}
-
-            {isVectorLayer && (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger
-                    className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isSelectionEmpty}
-                  >
-                    <Download className="mr-2 h-3.5 w-3.5" />
-                    <span title={isSelectionEmpty ? "Seleccione entidades primero" : "Exportar entidades seleccionadas"}>
-                      Exportar selección como...
-                    </span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-gray-700 text-white border-gray-600">
-                    <DropdownMenuItem
-                      className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
-                      onSelect={() => onExportSelection('geojson')}
-                    >
-                      GeoJSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
-                      onSelect={() => onExportSelection('kml')}
-                    >
-                      KML
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )}
             
             <DropdownMenuSeparator className="bg-gray-500/50" />
             <DropdownMenuLabel className="text-xs text-gray-300 px-2 py-1 flex items-center">
