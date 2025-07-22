@@ -14,17 +14,15 @@ export async function GET(request: NextRequest) {
     'Accept': 'application/xml, text/xml, application/json, */*',
   });
   
-  // --- START OF NEW AUTHENTICATION LOGIC ---
-  // Conditionally add authentication only for REST API requests.
-  // This avoids breaking public WMS/WFS endpoints.
   const GEOSERVER_USER = process.env.GEOSERVER_USER;
   const GEOSERVER_PASSWORD = process.env.GEOSERVER_PASSWORD;
 
   if (geoServerUrl.includes('/rest/') && GEOSERVER_USER && GEOSERVER_PASSWORD) {
     const credentials = Buffer.from(`${GEOSERVER_USER}:${GEOSERVER_PASSWORD}`).toString('base64');
-    headers.set('Authorization', `Basic ${credentials}`);
+    const authHeader = `Basic ${credentials}`;
+    headers.set('Authorization', authHeader);
+    console.log(`[DEBUG] Proxy: Attaching Auth Header for REST request: ${authHeader}`);
   }
-  // --- END OF NEW AUTHENTICATION LOGIC ---
 
   try {
     const response = await fetch(geoServerUrl, {
@@ -72,3 +70,7 @@ export async function GET(request: NextRequest) {
         details = `The connection to the GeoServer was refused by the server at ${geoServerUrl}. Please ensure the server is running and the port is correct.`;
       }
     }
+    
+    return NextResponse.json({ error: 'Proxy request failed', details }, { status: 502 });
+  }
+}
