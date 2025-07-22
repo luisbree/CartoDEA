@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'GeoServer URL is required' }, { status: 400 });
   }
 
-  const headers = new Headers({
+  const outgoingHeaders = new Headers({
     'User-Agent': 'MapExplorerApp/1.0 (Proxy)',
     'Accept': 'application/xml, text/xml, application/json, */*',
   });
@@ -20,15 +20,16 @@ export async function GET(request: NextRequest) {
   if (geoServerUrl.includes('/rest/') && GEOSERVER_USER && GEOSERVER_PASSWORD) {
     const credentials = Buffer.from(`${GEOSERVER_USER}:${GEOSERVER_PASSWORD}`).toString('base64');
     const authHeader = `Basic ${credentials}`;
-    headers.set('Authorization', authHeader);
-    console.log(`[DEBUG] Proxy: Attaching Auth Header for REST request: ${authHeader}`);
+    outgoingHeaders.set('Authorization', authHeader);
+    console.log(`[SERVER PROXY DEBUG] Attaching Auth Header for REST request: ${authHeader}`);
   }
 
   try {
+    console.log(`[SERVER PROXY DEBUG] Fetching from GeoServer URL: ${geoServerUrl}`);
     const response = await fetch(geoServerUrl, {
       method: 'GET',
       cache: 'no-store',
-      headers: headers,
+      headers: outgoingHeaders, // Use the explicitly constructed headers
     });
 
     if (!response.ok) {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
       headers: responseHeaders,
     });
   } catch (error: any) {
-    console.error('Proxy error:', error);
+    console.error('[SERVER PROXY ERROR] Proxy request failed:', error);
     
     let details = `The application server failed to connect to the GeoServer URL. This could be due to a network issue (e.g., firewall, incorrect IP address) or the GeoServer being offline. URL: ${geoServerUrl}`;
     

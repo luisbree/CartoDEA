@@ -15,7 +15,7 @@ export async function getStyleFromSld(layerName: string, styleName: string, geoS
   const proxyUrl = `/api/geoserver-proxy?url=${encodeURIComponent(getStyleUrl)}&cacheBust=${Date.now()}`;
   
   // CLIENT-SIDE LOG: This will appear in the browser console.
-  console.log(`[CLIENT DEBUG] Attempting to fetch style via proxy. URL sent to proxy: ${proxyUrl}`);
+  console.log(`[CLIENT DEBUG] Attempting to fetch style for '${styleName}' via proxy. URL sent to proxy: ${proxyUrl}`);
   
   try {
     const response = await fetch(proxyUrl);
@@ -25,6 +25,7 @@ export async function getStyleFromSld(layerName: string, styleName: string, geoS
       console.warn(`[CLIENT DEBUG] Could not fetch SLD for style '${styleName}'. Server responded with status ${response.status}. Body: ${errorText}`);
       return undefined;
     }
+    
     const sldString = await response.text();
     
     if (!sldString || sldString.toLowerCase().includes('no such style')) {
