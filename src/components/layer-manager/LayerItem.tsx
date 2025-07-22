@@ -18,10 +18,7 @@ import { Slider } from "@/components/ui/slider";
 import { Eye, EyeOff, Settings2, ZoomIn, Table2, Trash2, Scissors, Percent, GripVertical, CopyPlus, Download, Info } from 'lucide-react';
 import type { MapLayer } from '@/lib/types';
 import VectorLayer from 'ol/layer/Vector'; 
-import TileLayer from 'ol/layer/Tile';
-import TileWMS from 'ol/source/TileWMS';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 interface LayerItemProps {
@@ -78,7 +75,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onClick,
 }) => {
   const isVectorLayer = layer.olLayer instanceof VectorLayer;
-  const isHybridWfs = layer.type === 'wfs' && layer.olLayer.get('linkedWmsLayerId');
   const currentOpacityPercentage = Math.round(layer.opacity * 100);
 
   return (
@@ -100,11 +96,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
       onDrop={onDrop}
       onClick={onClick}
     >
-      {isDraggable && <GripVertical className="h-4 w-4 text-gray-500 mr-1 flex-shrink-0" />}
+      <GripVertical className="h-4 w-4 text-gray-500 mr-1 flex-shrink-0 cursor-grab" />
       
-      {/* Placeholder for alignment, as legend is no longer needed with hybrid approach */}
-      {!isDraggable && <div className="w-5 h-5 mr-1 flex-shrink-0" /> }
-
       <Button
         variant="ghost"
         size="icon"

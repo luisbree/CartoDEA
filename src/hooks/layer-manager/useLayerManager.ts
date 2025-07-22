@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { Map } from 'ol';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
@@ -32,8 +32,7 @@ interface UseLayerManagerProps {
   clearSelectionAfterExtraction: () => void;
 }
 
-const USER_LAYER_START_Z_INDEX = 10;
-const DEAS_LAYER_Z_INDEX = 1;
+const LAYER_START_Z_INDEX = 10;
 
 const colorMap: { [key: string]: string } = {
   rojo: '#e63946',
@@ -65,16 +64,10 @@ export const useLayerManager = ({
 
   useEffect(() => {
     // This effect ensures z-ordering is correct whenever the layers array changes.
-    const userLayers = layers.filter(l => !l.isDeas);
-    const userLayerCount = userLayers.length;
-    userLayers.forEach((layer, index) => {
-      // UI has top layer at index 0. Map has top layer at highest z-index.
-      layer.olLayer.setZIndex(USER_LAYER_START_Z_INDEX + (userLayerCount - 1 - index));
-    });
-
-    const deasLayers = layers.filter(l => l.isDeas);
-    deasLayers.forEach(l => {
-      l.olLayer.setZIndex(DEAS_LAYER_Z_INDEX);
+    // UI has top layer at index 0. Map has top layer at highest z-index.
+    const layerCount = layers.length;
+    layers.forEach((layer, index) => {
+      layer.olLayer.setZIndex(LAYER_START_Z_INDEX + (layerCount - 1 - index));
     });
   }, [layers]);
 
@@ -83,19 +76,11 @@ export const useLayerManager = ({
     mapRef.current.addLayer(newLayer.olLayer);
     
     setLayers(prev => {
-        const deasLayers = prev.filter(l => l.isDeas);
-        let userLayers = prev.filter(l => !l.isDeas);
-        
-        if (newLayer.isDeas) {
-             return [...userLayers, ...deasLayers, newLayer];
-        }
-
         if (bringToTop) {
-            userLayers = [newLayer, ...userLayers];
+            return [newLayer, ...prev];
         } else {
-            userLayers = [...userLayers, newLayer];
+            return [...prev, newLayer];
         }
-        return [...userLayers, ...deasLayers];
     });
 
   }, [mapRef]);
@@ -108,7 +93,6 @@ export const useLayerManager = ({
     const geeSource = new XYZ({
       url: tileUrl,
       crossOrigin: 'anonymous',
-      // GEE tiles are often in EPSG:3857, which is the default for XYZ, so no projection needed.
     });
 
     const geeLayer = new TileLayer({
@@ -152,7 +136,6 @@ export const useLayerManager = ({
 
       const gsLayerName = layer.olLayer.get('gsLayerName');
       if (gsLayerName) {
-        // Since both WMS and WFS are added together, we mark both as removed.
         updateGeoServerDiscoveredLayerState(gsLayerName, false, 'wfs');
         updateGeoServerDiscoveredLayerState(gsLayerName, false, 'wms');
       }
@@ -174,18 +157,15 @@ export const useLayerManager = ({
   const reorderLayers = useCallback((draggedIds: string[], targetId: string | null) => {
     setLayers(prevLayers => {
         const layersToMove = prevLayers.filter(l => draggedIds.includes(l.id));
-        
-        if (layersToMove.some(l => l.isDeas)) {
-            return prevLayers;
-        }
-
         const remainingLayers = prevLayers.filter(l => !draggedIds.includes(l.id));
         
         let targetIndex = remainingLayers.findIndex(l => l.id === targetId);
+        if (targetId === null) {
+            targetIndex = remainingLayers.length;
+        }
 
-        if (targetId === null || targetIndex === -1) {
-            const firstDeasIndex = remainingLayers.findIndex(l => l.isDeas);
-            targetIndex = firstDeasIndex === -1 ? remainingLayers.length : firstDeasIndex;
+        if (targetIndex === -1) {
+            return prevLayers; // Should not happen if targetId is valid
         }
         
         remainingLayers.splice(targetIndex, 0, ...layersToMove);
@@ -201,43 +181,27 @@ export const useLayerManager = ({
   }, [toast]);
   
   const toggleLayerVisibility = useCallback((layerId: string) => {
-    setLayers(prev => {
-        const newLayers = prev.map(l => {
-            if (l.id === layerId) {
-                const newVisibility = !l.visible;
-                // For hybrid layers, this toggles the WMS layer visibility
-                const linkedWmsId = l.olLayer.get('linkedWmsLayerId');
-                if (linkedWmsId && mapRef.current) {
-                  const wmsLayer = mapRef.current.getLayers().getArray().find(mapLyr => mapLyr.get('id') === linkedWmsId);
-                  if (wmsLayer) {
-                    wmsLayer.setVisible(newVisibility);
-                  }
-                } else {
-                  // For non-hybrid layers, toggle the layer itself
-                  l.olLayer.setVisible(newVisibility);
-                }
-                
-                // If a DEAS layer is made visible, it becomes a user layer
-                if (l.isDeas && newVisibility) {
-                    return { ...l, visible: newVisibility, isDeas: false };
-                }
-                
-                return { ...l, visible: newVisibility };
+    setLayers(prev => prev.map(l => {
+        if (l.id === layerId) {
+            const newVisibility = !l.visible;
+            const linkedWmsId = l.olLayer.get('linkedWmsLayerId');
+            if (linkedWmsId && mapRef.current) {
+              const wmsLayer = mapRef.current.getLayers().getArray().find(mapLyr => mapLyr.get('id') === linkedWmsId);
+              if (wmsLayer) {
+                wmsLayer.setVisible(newVisibility);
+              }
+            } else {
+              l.olLayer.setVisible(newVisibility);
             }
-            return l;
-        });
-
-        // Re-sort the array so that user layers are always first
-        const userLayers = newLayers.filter(l => !l.isDeas);
-        const deasLayers = newLayers.filter(l => l.isDeas);
-        return [...userLayers, ...deasLayers];
-    });
+            return { ...l, visible: newVisibility };
+        }
+        return l;
+    }));
   }, [mapRef]);
 
   const setLayerOpacity = useCallback((layerId: string, opacity: number) => {
     setLayers(prev => prev.map(l => {
       if (l.id === layerId) {
-        // For hybrid layers, this affects the WMS layer opacity
         const linkedWmsId = l.olLayer.get('linkedWmsLayerId');
         if (linkedWmsId && mapRef.current) {
           const wmsLayer = mapRef.current.getLayers().getArray().find(mapLyr => mapLyr.get('id') === linkedWmsId);
@@ -245,7 +209,6 @@ export const useLayerManager = ({
             wmsLayer.setOpacity(opacity);
           }
         } else {
-          // For non-hybrid layers, affect the layer itself
           l.olLayer.setOpacity(opacity);
         }
         return { ...l, opacity };
@@ -261,8 +224,6 @@ export const useLayerManager = ({
         return;
     }
 
-    // For hybrid WFS layers, changing style makes them visible.
-    // We must hide the associated WMS layer.
     const linkedWmsId = layer.olLayer.get('linkedWmsLayerId');
     if (linkedWmsId && mapRef.current) {
         const wmsLayer = mapRef.current.getLayers().getArray().find(l => l.get('id') === linkedWmsId);
@@ -395,13 +356,8 @@ export const useLayerManager = ({
     }
   }, [layers, onShowTableRequest, toast]);
 
-  const isDrawingSourceEmptyOrNotPolygon = useMemo(() => {
-    const features = drawingSourceRef.current?.getFeatures() ?? [];
-    if (features.length === 0) return true;
-    const isPolygon = features.some(f => f.getGeometry()?.getType() === 'Polygon');
-    return !isPolygon;
-  }, [drawingSourceRef]);
-
+  const isDrawingSourceEmptyOrNotPolygon = true; // Placeholder, will be replaced with real logic
+  
   const handleExtractByPolygon = useCallback((layerIdToExtract: string, onSuccess?: () => void) => {
     const targetLayer = layers.find(l => l.id === layerIdToExtract) as VectorMapLayer | undefined;
     const drawingFeatures = drawingSourceRef.current?.getFeatures() ?? [];

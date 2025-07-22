@@ -45,20 +45,12 @@ const LayerList: React.FC<LayerListProps> = ({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLLIElement>, index: number) => {
-      if (layers[index].isDeas) {
-          e.preventDefault();
-          return;
-      }
       dragItemIndex.current = index;
       e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleDragEnter = (e: React.DragEvent<HTMLLIElement>, index: number) => {
       e.preventDefault();
-      if (layers[index].isDeas) {
-          setDragOverIndex(null);
-          return;
-      }
       setDragOverIndex(index);
   };
   
@@ -74,17 +66,9 @@ const LayerList: React.FC<LayerListProps> = ({
     const draggedItem = layers[dragItemIndex.current];
     const dropTargetItem = layers[dropIndex];
     
-    // Prevent dropping on DEAS layers
-    if (dropTargetItem.isDeas) {
-        dragItemIndex.current = null;
-        setDragOverIndex(null);
-        return;
-    }
-    
     const isMultiDrag = selectedLayerIds.includes(draggedItem.id);
     const draggedIds = isMultiDrag ? selectedLayerIds : [draggedItem.id];
 
-    // Prevent dropping a selection onto one of its own members
     if (draggedIds.includes(dropTargetItem.id)) {
         dragItemIndex.current = null;
         setDragOverIndex(null);
@@ -129,7 +113,7 @@ const LayerList: React.FC<LayerListProps> = ({
           isDrawingSourceEmptyOrNotPolygon={isDrawingSourceEmptyOrNotPolygon}
           isSelectionEmpty={isSelectionEmpty}
           onSetLayerOpacity={onSetLayerOpacity}
-          isDraggable={!layer.isDeas}
+          isDraggable={true} // All layers are now draggable
           onDragStart={(e) => handleDragStart(e, index)}
           onDragEnter={(e) => handleDragEnter(e, index)}
           onDragLeave={handleDragLeave}
