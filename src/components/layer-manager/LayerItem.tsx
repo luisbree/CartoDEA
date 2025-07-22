@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -82,15 +81,30 @@ const LayerItem: React.FC<LayerItemProps> = ({
   const isWmsLayer = layer.olLayer instanceof TileLayer && layer.olLayer.getSource() instanceof TileWMS;
   const currentOpacityPercentage = Math.round(layer.opacity * 100);
 
-  const getLegendUrl = () => {
+  const buildLegendUrl = () => {
     if (isWmsLayer) {
-      const source = layer.olLayer.getSource() as TileWMS;
-      return source.getLegendUrl();
+      const gsLayerName = layer.olLayer.get('gsLayerName');
+      const gsServerUrl = layer.olLayer.get('gsServerUrl');
+      
+      if (gsLayerName && gsServerUrl) {
+        // Construct the GetLegendGraphic URL manually
+        const url = new URL(`${gsServerUrl}/wms`);
+        url.searchParams.set('REQUEST', 'GetLegendGraphic');
+        url.searchParams.set('VERSION', '1.1.0');
+        url.searchParams.set('FORMAT', 'image/png');
+        url.searchParams.set('WIDTH', '20');
+        url.searchParams.set('HEIGHT', '20');
+        url.searchParams.set('LAYER', gsLayerName);
+        
+        // Return the URL to be used with the proxy
+        return `/api/geoserver-proxy?url=${encodeURIComponent(url.toString())}`;
+      }
     }
     return null;
   };
 
-  const legendUrl = getLegendUrl();
+  const legendUrl = buildLegendUrl();
+
 
   return (
     <li 

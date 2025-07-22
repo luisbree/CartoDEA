@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -115,6 +114,7 @@ export const useGeoServerLayers = ({
         name: layerTitle || layerName,
         type: 'wms',
         gsLayerName: layerName,
+        gsServerUrl: urlToUse, // Store the server URL
         bbox: bbox,
       }
     });
