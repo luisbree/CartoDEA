@@ -11,7 +11,6 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { useToast } from "@/hooks/use-toast";
 import type { MapLayer, GeoServerDiscoveredLayer } from '@/lib/types';
 import { nanoid } from 'nanoid';
-import { getStyleFromSld } from '@/services/geostyler';
 
 
 interface UseGeoServerLayersProps {
@@ -59,7 +58,6 @@ export const useGeoServerLayers = ({
       const discoveredLayers: GeoServerDiscoveredLayer[] = layerNodes.map(node => {
           const name = node.querySelector('Name')?.textContent ?? '';
           const title = node.querySelector('Title')?.textContent ?? name;
-          const styleName = node.querySelector('Style > Name')?.textContent;
           
           let bboxNode = node.querySelector('BoundingBox[CRS="CRS:84"]');
           let bbox: [number, number, number, number] | undefined = undefined;
@@ -85,7 +83,7 @@ export const useGeoServerLayers = ({
               }
           }
           
-          return { name, title, bbox, styleName, wmsAddedToMap: false, wfsAddedToMap: false };
+          return { name, title, bbox, wmsAddedToMap: false, wfsAddedToMap: false };
       }).filter(l => l.name);
 
       return discoveredLayers;
@@ -137,9 +135,7 @@ export const useGeoServerLayers = ({
     }
   }, [isMapReady, mapRef, addLayer, onLayerStateUpdate, toast]);
   
-  const handleAddGeoServerLayerAsWFS = useCallback(async (layerName: string, layerTitle: string, urlOverride: string, styleName?: string) => {
-    console.log(`[DEBUG] handleAddGeoServerLayerAsWFS called for: layerName=${layerName}, styleName=${styleName}`);
-    
+  const handleAddGeoServerLayerAsWFS = useCallback(async (layerName: string, layerTitle: string, urlOverride: string) => {
     const urlToUse = urlOverride;
     if (!isMapReady || !urlToUse) return;
 
@@ -184,19 +180,9 @@ export const useGeoServerLayers = ({
       const vectorSource = new VectorSource({
         features: new GeoJSON().readFeatures(geojsonData),
       });
-      
-      let olStyle;
-      if (styleName) {
-        console.log(`[DEBUG] Attempting to fetch style '${styleName}' from GeoServer.`);
-        olStyle = await getStyleFromSld(layerName, styleName, urlToUse);
-        console.log(`[DEBUG] Result from getStyleFromSld:`, olStyle);
-      } else {
-        console.log(`[DEBUG] No styleName provided. A default style will be used.`);
-      }
 
       const vectorLayer = new VectorLayer({
         source: vectorSource,
-        style: olStyle, // Will be undefined if not found, OL will use its default
         properties: {
           id: `wfs-${layerName}-${nanoid()}`,
           name: layerTitle || layerName,
@@ -204,7 +190,6 @@ export const useGeoServerLayers = ({
           gsLayerName: layerName
         }
       });
-      console.log(`[DEBUG] Applying style to layer '${layerName}':`, olStyle ? 'Custom SLD Style' : 'OpenLayers Default Style');
       
       addLayer({
         id: vectorLayer.get('id'),
@@ -232,4 +217,3 @@ export const useGeoServerLayers = ({
     handleAddGeoServerLayerAsWFS,
   };
 };
-

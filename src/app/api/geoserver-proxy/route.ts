@@ -9,32 +9,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'GeoServer URL is required' }, { status: 400 });
   }
 
-  const outgoingHeaders = new Headers({
-    'User-Agent': 'MapExplorerApp/1.0 (Proxy)',
-    'Accept': 'application/xml, text/xml, application/json, */*',
-  });
-  
-  const GEOSERVER_USER = process.env.GEOSERVER_USER;
-  const GEOSERVER_PASSWORD = process.env.GEOSERVER_PASSWORD;
-
-  if (geoServerUrl.includes('/rest/') && GEOSERVER_USER && GEOSERVER_PASSWORD) {
-    const credentials = Buffer.from(`${GEOSERVER_USER}:${GEOSERVER_PASSWORD}`).toString('base64');
-    const authHeader = `Basic ${credentials}`;
-    outgoingHeaders.set('Authorization', authHeader);
-    console.log(`[SERVER PROXY DEBUG] Attaching Auth Header for REST request: ${authHeader}`);
-  }
-
+  // No special headers or auth needed for public WMS/WFS requests
   try {
-    console.log(`[SERVER PROXY DEBUG] Fetching from GeoServer URL: ${geoServerUrl}`);
     const response = await fetch(geoServerUrl, {
       method: 'GET',
-      cache: 'no-store',
-      headers: outgoingHeaders, // Use the explicitly constructed headers
+      cache: 'no-store', // Important for GetCapabilities and dynamic data
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-       if (response.headers.get('content-type')?.includes('xml') || response.headers.get('content-type')?.includes('html') || response.headers.get('content-type')?.includes('sld')) {
+       // If the error response is XML or HTML, pass it through with the correct content type.
+       // This is common for GeoServer's service exceptions.
+       if (response.headers.get('content-type')?.includes('xml') || response.headers.get('content-type')?.includes('html')) {
          return new NextResponse(errorText, {
           status: response.status,
           headers: { 'Content-Type': response.headers.get('content-type') || 'text/plain' },
@@ -42,9 +28,10 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ error: `GeoServer error: ${response.statusText}`, details: errorText }, { status: response.status });
     }
-
+    
+    // For successful image or data responses, stream the data back.
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    const data = await response.text();
+    const data = await response.arrayBuffer();
 
     const responseHeaders = new Headers();
     responseHeaders.set('Content-Type', contentType);

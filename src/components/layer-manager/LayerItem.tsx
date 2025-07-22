@@ -13,12 +13,17 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger, 
+  DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider"; 
-import { Eye, EyeOff, Settings2, ZoomIn, Table2, Trash2, Scissors, Percent, GripVertical, CopyPlus, Download } from 'lucide-react';
+import { Eye, EyeOff, Settings2, ZoomIn, Table2, Trash2, Scissors, Percent, GripVertical, CopyPlus, Download, Info } from 'lucide-react';
 import type { MapLayer } from '@/lib/types';
 import VectorLayer from 'ol/layer/Vector'; 
+import TileLayer from 'ol/layer/Tile';
+import TileWMS from 'ol/source/TileWMS';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 
 interface LayerItemProps {
   layer: MapLayer;
@@ -74,7 +79,18 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onClick,
 }) => {
   const isVectorLayer = layer.olLayer instanceof VectorLayer;
+  const isWmsLayer = layer.olLayer instanceof TileLayer && layer.olLayer.getSource() instanceof TileWMS;
   const currentOpacityPercentage = Math.round(layer.opacity * 100);
+
+  const getLegendUrl = () => {
+    if (isWmsLayer) {
+      const source = layer.olLayer.getSource() as TileWMS;
+      return source.getLegendUrl();
+    }
+    return null;
+  };
+
+  const legendUrl = getLegendUrl();
 
   return (
     <li 
@@ -96,6 +112,30 @@ const LayerItem: React.FC<LayerItemProps> = ({
       onClick={onClick}
     >
       {isDraggable && <GripVertical className="h-4 w-4 text-gray-500 mr-1 flex-shrink-0" />}
+      
+      {legendUrl ? (
+        <Popover>
+          <PopoverTrigger asChild>
+             <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); }}
+                className="h-6 w-6 text-white hover:bg-gray-600/80 p-0 mr-2 flex-shrink-0"
+                aria-label={`Ver leyenda para ${layer.name}`}
+                title="Ver leyenda"
+              >
+                <Info className="h-3.5 w-3.5" />
+             </Button>
+          </PopoverTrigger>
+          <PopoverContent side="right" align="start" className="w-auto p-0 border-gray-600 bg-gray-800">
+            <img src={legendUrl} alt={`Leyenda para ${layer.name}`} className="max-w-xs max-h-48" />
+          </PopoverContent>
+        </Popover>
+      ) : (
+         <div className="w-6 h-6 mr-2 flex-shrink-0" /> // Placeholder to keep alignment
+      )}
+
+
       <Button
         variant="ghost"
         size="icon"
@@ -106,6 +146,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
       >
         {layer.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       </Button>
+
       <span
         className={cn(
           "flex-1 cursor-default text-xs font-medium truncate min-w-0 select-none",
