@@ -16,7 +16,7 @@ import shp from 'shpjs';
 import JSZip from 'jszip';
 import type Feature from 'ol/Feature';
 import type { Geometry } from 'ol/geom';
-import { Style, Fill, Stroke } from 'ol/style';
+import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 
 
 interface UseOSMDataProps {
@@ -46,7 +46,12 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
         let layerName = 'OSM Personalizado';
         let layerStyle = new Style({
             stroke: new Stroke({ color: '#fb8500', width: 2 }),
-            fill: new Fill({ color: 'rgba(251, 133, 0, 0.2)' })
+            fill: new Fill({ color: 'rgba(251, 133, 0, 0.2)' }),
+            image: new CircleStyle({
+                radius: 6,
+                fill: new Fill({ color: 'rgba(251, 133, 0, 0.5)' }),
+                stroke: new Stroke({ color: '#fb8500', width: 1.5 })
+            })
         });
         
         if (query.type === 'categories') {
