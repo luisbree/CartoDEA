@@ -50,7 +50,7 @@ const geeTileLayerFlow = ai.defineFlow(
       let visParams: { bands?: string[]; min: number; max: number; gamma?: number, palette?: string[] };
       
       // Base Sentinel-2 Image Collection
-      if (bandCombination !== 'JRC_WATER_OCCURRENCE') {
+      if (bandCombination !== 'JRC_WATER_OCCURRENCE' && bandCombination !== 'OPENLANDMAP_SOC') {
           let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
             .filterBounds(geometry)
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
@@ -104,7 +104,14 @@ const geeTileLayerFlow = ai.defineFlow(
               };
               break;
           }
-      } else {
+      } else if (bandCombination === 'OPENLANDMAP_SOC') {
+          finalImage = ee.Image("OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02").select('b0');
+          visParams = {
+            min: 0,
+            max: 100, // The values are in dg/kg (g/kg * 10)
+            palette: ['#FFFFE5', '#FFF7BC', '#FEE391', '#FEC44F', '#FE9929', '#EC7014', '#CC4C02', '#8C2D04'] // Yellow to brown
+          };
+      } else { // JRC_WATER_OCCURRENCE
           finalImage = ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence');
           visParams = {
             min: 0,

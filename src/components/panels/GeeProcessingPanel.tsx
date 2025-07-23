@@ -100,6 +100,9 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                 case 'JRC_WATER_OCCURRENCE':
                     layerName = 'Agua Superficial (JRC)';
                     break;
+                case 'OPENLANDMAP_SOC':
+                    layerName = 'Carbono Org. del Suelo (OpenLandMap)';
+                    break;
                 default:
                     layerName = 'Capa GEE';
             }
@@ -145,6 +148,8 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
     );
   };
 
+  const isDateSelectionDisabled = selectedCombination === 'JRC_WATER_OCCURRENCE' || selectedCombination === 'OPENLANDMAP_SOC';
+
   return (
     <DraggablePanel
       title="Procesamiento GEE"
@@ -183,19 +188,27 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                 <RadioGroupItem value="JRC_WATER_OCCURRENCE" id="jrc-combo" />
                 <Label htmlFor="jrc-combo" className="text-xs font-normal">Agua Superficial (JRC)</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="OPENLANDMAP_SOC" id="soc-combo" />
+                <Label htmlFor="soc-combo" className="text-xs font-normal">Carbono Org. Suelo (OpenLandMap)</Label>
+              </div>
             </RadioGroup>
         </div>
 
         <div className="pt-2 border-t border-white/10">
-          <Label className="text-sm font-semibold text-white mb-2 block">Rango de Fechas (Sentinel-2)</Label>
+          <Label className={cn("text-sm font-semibold text-white mb-2 block", isDateSelectionDisabled && "text-gray-500")}>
+              Rango de Fechas (Sentinel-2)
+          </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 id="date"
                 variant={"outline"}
+                disabled={isDateSelectionDisabled}
                 className={cn(
                   "w-full justify-start text-left font-normal h-9 text-xs border-white/30 bg-black/20 text-white/90 focus:ring-primary",
-                  !date && "text-muted-foreground"
+                  !date && "text-muted-foreground",
+                   isDateSelectionDisabled && "bg-gray-800/50 text-gray-500 border-gray-700 cursor-not-allowed"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -231,7 +244,11 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
         </div>
         
         <div className="space-y-2 pt-2 border-t border-white/10">
-          <Button onClick={handleGenerateLayer} disabled={isGenerating || isAuthenticating || !isAuthenticated || (selectedCombination !== 'JRC_WATER_OCCURRENCE' && (!date?.from || !date?.to))} className="w-full">
+          <Button 
+             onClick={handleGenerateLayer} 
+             disabled={isGenerating || isAuthenticating || !isAuthenticated || (isDateSelectionDisabled ? false : (!date?.from || !date?.to))} 
+             className="w-full"
+           >
             {isGenerating ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
