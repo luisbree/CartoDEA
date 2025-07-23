@@ -8,7 +8,7 @@ import LocationSearch from '@/components/location-search/LocationSearch';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import type { BaseLayerOptionForSelect, NominatimResult, BaseLayerSettings } from '@/lib/types'; 
-import { Database, Search, ImageUp, ImageOff, Loader2 } from 'lucide-react';
+import { Database, Search, ImageUp, ImageOff, Loader2, Camera } from 'lucide-react';
 import BaseLayerControls from '../layer-manager/BaseLayerControls';
 
 interface LayersPanelProps {
@@ -21,6 +21,7 @@ interface LayersPanelProps {
   availableBaseLayers: BaseLayerOptionForSelect[];
   activeBaseLayerId: string;
   onChangeBaseLayer: (id: string) => void;
+  onOpenStreetView: () => void;
 
   onZoomToBoundingBox: (bbox: [number, number, number, number]) => void;
 
@@ -41,7 +42,7 @@ interface LayersPanelProps {
 
 const LayersPanel: React.FC<LayersPanelProps> = ({
   panelRef, isCollapsed, onToggleCollapse, onClosePanel, onMouseDownHeader,
-  availableBaseLayers, activeBaseLayerId, onChangeBaseLayer,
+  availableBaseLayers, activeBaseLayerId, onChangeBaseLayer, onOpenStreetView,
   onZoomToBoundingBox,
   onFindSentinel2Footprints, onClearSentinel2Footprints, isFindingSentinelFootprints,
   onFindLandsatFootprints, onClearLandsatFootprints, isFindingLandsatFootprints,
@@ -72,11 +73,22 @@ const LayersPanel: React.FC<LayersPanelProps> = ({
         
         <LocationSearch onLocationSelect={handleLocationSelection} />
         
-        <BaseLayerSelector
-            availableBaseLayers={availableBaseLayers}
-            activeBaseLayerId={activeBaseLayerId}
-            onChangeBaseLayer={onChangeBaseLayer}
-        />
+        <div className="flex items-center gap-2">
+            <BaseLayerSelector
+                availableBaseLayers={availableBaseLayers}
+                activeBaseLayerId={activeBaseLayerId}
+                onChangeBaseLayer={onChangeBaseLayer}
+            />
+            <Button
+                onClick={onOpenStreetView}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0 bg-black/20 hover:bg-black/40 border border-white/30 text-white/90"
+                title="Abrir Google Street View en la ubicación actual"
+            >
+                <Camera className="h-4 w-4" />
+            </Button>
+        </div>
 
         <BaseLayerControls settings={baseLayerSettings} onChange={onBaseLayerSettingsChange} />
         

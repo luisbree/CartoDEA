@@ -4,7 +4,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { MapPin, Database, Wrench, ListTree, ListChecks, Sparkles, ClipboardCheck, Library, LifeBuoy, Printer, Server, BrainCircuit } from 'lucide-react';
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
-import { transformExtent } from 'ol/proj';
+import { transform, transformExtent } from 'ol/proj';
 import type { Extent } from 'ol/extent';
 import { Button } from '@/components/ui/button';
 import {
@@ -577,6 +577,27 @@ export default function GeoMapperClient() {
       featureInspectionHook.selectFeaturesById(newSelectedIds);
   }, [featureInspectionHook, toast]);
 
+  const handleOpenStreetView = useCallback(() => {
+    if (!mapRef.current) {
+        toast({ description: "El mapa no está listo." });
+        return;
+    }
+    const view = mapRef.current.getView();
+    const center = view.getCenter();
+    if (!center) {
+        toast({ description: "No se pudo obtener el centro del mapa." });
+        return;
+    }
+    try {
+        const [lon, lat] = transform(center, view.getProjection(), 'EPSG:4326');
+        const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+        console.error("Error transforming coordinates for Street View:", error);
+        toast({ description: "Error al obtener las coordenadas para Street View.", variant: "destructive" });
+    }
+  }, [mapRef, toast]);
+
 
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
@@ -645,6 +666,7 @@ export default function GeoMapperClient() {
             availableBaseLayers={availableBaseLayersForSelect}
             activeBaseLayerId={activeBaseLayerId}
             onChangeBaseLayer={handleChangeBaseLayer}
+            onOpenStreetView={handleOpenStreetView}
             onZoomToBoundingBox={zoomToBoundingBox}
             onFindSentinel2Footprints={layerManagerHook.findSentinel2FootprintsInCurrentView}
             onClearSentinel2Footprints={layerManagerHook.clearSentinel2FootprintsLayer}
@@ -838,4 +860,3 @@ export default function GeoMapperClient() {
     </div>
   );
 }
-
