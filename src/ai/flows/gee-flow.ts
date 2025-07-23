@@ -43,7 +43,7 @@ const geeTileLayerFlow = ai.defineFlow(
     try {
       await initializeEe();
 
-      const { aoi, bandCombination, startDate, endDate } = input;
+      const { aoi, bandCombination, startDate, endDate, zoom } = input;
       const geometry = ee.Geometry.Rectangle([aoi.minLon, aoi.minLat, aoi.maxLon, aoi.maxLat]);
       
       let finalImage;
@@ -144,10 +144,35 @@ const geeTileLayerFlow = ai.defineFlow(
           };
           
       } else if (bandCombination === 'NASADEM_ELEVATION') {
-          finalImage = ee.Image('NASA/NASADEM_HGT/001').select('elevation');
+          const image = ee.Image('NASA/NASADEM_HGT/001').select('elevation');
+          finalImage = image; // Use the original image for tile generation
+
+          // Calculate min and max for the current AOI for dynamic stretching
+          const scale = zoom > 10 ? 30 : 250; // Use finer scale for smaller areas
+          const minMax = image.reduceRegion({
+              reducer: ee.Reducer.minMax(),
+              geometry: geometry,
+              scale: scale,
+              maxPixels: 1e9,
+              bestEffort: true
+          });
+          
+          // Promisify getInfo
+          const getInfo = promisify(minMax.getInfo).bind(minMax);
+          const stats = await getInfo();
+          
+          let minVal = stats.elevation_min ?? 0;
+          let maxVal = stats.elevation_max ?? 4000;
+
+          // Add a small buffer to min and max if they are the same
+          if (minVal === maxVal) {
+              minVal -= 1;
+              maxVal += 1;
+          }
+
           visParams = {
-              min: 0,
-              max: 4000,
+              min: minVal,
+              max: maxVal,
               palette: ['006633', 'E5FFCC', '662A00', 'D8D8D8', 'FFFFFF'] // Terrain palette
           };
 
