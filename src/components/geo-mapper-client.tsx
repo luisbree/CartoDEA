@@ -44,6 +44,7 @@ import type { OSMCategoryConfig, GeoServerDiscoveredLayer, BaseLayerOptionForSel
 import { chatWithMapAssistant, type MapAssistantOutput } from '@/ai/flows/find-layer-flow';
 import { searchTrelloCard } from '@/ai/flows/trello-actions';
 import { authenticateWithGee } from '@/ai/flows/gee-flow';
+import { StreetViewIcon } from './icons/StreetViewIcon';
 
 
 const osmCategoryConfig: OSMCategoryConfig[] = [
@@ -67,7 +68,7 @@ const osmCategoryConfig: OSMCategoryConfig[] = [
   },
     {
     id: 'bridges', name: 'OSM Puentes',
-    overpassQueryFragment: (bboxStr) => `nwr[~"."~"[Bb]ridge|[Pp]uente",i](${bboxStr});`,
+    overpassQueryFragment: (bboxStr) => `nwr[~".*bridge.*"~".*",i](${bboxStr});nwr[~".*puente.*"~".*",i](${bboxStr});`,
     matcher: (tags) => tags && Object.entries(tags).some(([key, value]) =>
         /bridge|puente/i.test(key) || (typeof value === 'string' && /bridge|puente/i.test(value))
     ),
@@ -712,6 +713,7 @@ export default function GeoMapperClient() {
             onSaveDrawnFeaturesAsKML={drawingInteractions.saveDrawnFeaturesAsKML}
             isFetchingOSM={osmDataHook.isFetchingOSM}
             onFetchOSMDataTrigger={osmDataHook.fetchOSMData}
+            onFetchCustomOSMData={osmDataHook.fetchCustomOSMData}
             osmCategoriesForSelection={osmCategoriesForSelection}
             selectedOSMCategoryIds={osmDataHook.selectedOSMCategoryIds}
             onSelectedOSMCategoriesChange={osmDataHook.setSelectedOSMCategoryIds}

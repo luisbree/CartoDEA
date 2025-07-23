@@ -1,11 +1,12 @@
+
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import DraggablePanel from './DraggablePanel';
 import DrawingToolbar from '@/components/drawing-tools/DrawingToolbar';
 import OSMCategorySelector from '@/components/osm-integration/OSMCategorySelector';
 import OSMDownloadOptions from '@/components/osm-integration/OSMDownloadOptions';
-import { Wrench, Map as MapIcon } from 'lucide-react';
+import { Wrench, Map as MapIcon, Search } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -13,6 +14,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from '@/components/ui/separator';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 
 interface OSMCategory {
   id: string;
@@ -36,6 +40,7 @@ interface ToolsPanelProps {
   // OSM props
   isFetchingOSM: boolean;
   onFetchOSMDataTrigger: () => void;
+  onFetchCustomOSMData: (key: string, value: string) => void;
   osmCategoriesForSelection: OSMCategory[];
   selectedOSMCategoryIds: string[];
   onSelectedOSMCategoriesChange: (ids: string[]) => void;
@@ -57,13 +62,21 @@ const SectionHeader: React.FC<{ title: string; description?: string; icon: React
 const ToolsPanel: React.FC<ToolsPanelProps> = ({
   panelRef, /*position,*/ isCollapsed, onToggleCollapse, onClosePanel, onMouseDownHeader,
   activeDrawTool, onToggleDrawingTool, onClearDrawnFeatures, onSaveDrawnFeaturesAsKML,
-  isFetchingOSM, onFetchOSMDataTrigger, osmCategoriesForSelection, selectedOSMCategoryIds, 
+  isFetchingOSM, onFetchOSMDataTrigger, onFetchCustomOSMData, osmCategoriesForSelection, selectedOSMCategoryIds, 
   onSelectedOSMCategoriesChange,
   isDownloading, onDownloadOSMLayers,
   style, // Destructure style
 }) => {
 
   const [activeAccordionItem, setActiveAccordionItem] = React.useState<string | undefined>('openstreetmap-section');
+  const [customKey, setCustomKey] = useState('');
+  const [customValue, setCustomValue] = useState('');
+
+  const handleCustomSearch = () => {
+    if (customKey.trim()) {
+      onFetchCustomOSMData(customKey.trim(), customValue.trim());
+    }
+  };
 
   return (
     <DraggablePanel
@@ -116,6 +129,24 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                     isDownloading={isDownloading}
                     onDownloadOSMLayers={onDownloadOSMLayers}
                 />
+                <Separator className="my-2 bg-white/10" />
+                 <div className="space-y-3">
+                    <p className="text-xs text-gray-300/80">O realice una búsqueda personalizada por clave/valor para el polígono dibujado.</p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 space-y-1">
+                          <Label htmlFor="osm-key" className="text-xs text-white/90">Clave (Key)</Label>
+                          <Input id="osm-key" value={customKey} onChange={e => setCustomKey(e.target.value)} placeholder="amenity" className="h-8 text-xs bg-black/20" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                          <Label htmlFor="osm-value" className="text-xs text-white/90">Valor (Value)</Label>
+                          <Input id="osm-value" value={customValue} onChange={e => setCustomValue(e.target.value)} placeholder="hospital" className="h-8 text-xs bg-black/20" />
+                      </div>
+                    </div>
+                    <Button onClick={handleCustomSearch} disabled={!customKey.trim() || isFetchingOSM} className="w-full h-9">
+                        <Search className="mr-2 h-4 w-4" />
+                        Buscar y Añadir Capa Personalizada
+                    </Button>
+                </div>
               </AccordionContent>
             </AccordionItem>
         </Accordion>
