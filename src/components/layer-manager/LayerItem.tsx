@@ -15,7 +15,7 @@ import {
   DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider"; 
-import { Eye, EyeOff, Settings2, ZoomIn, Table2, Trash2, Scissors, Percent, GripVertical, CopyPlus, Download, Info } from 'lucide-react';
+import { Eye, EyeOff, Settings2, ZoomIn, Table2, Trash2, Scissors, Percent, GripVertical, CopyPlus, Download, Edit } from 'lucide-react';
 import type { MapLayer } from '@/lib/types';
 import VectorLayer from 'ol/layer/Vector'; 
 import { cn } from '@/lib/utils';
@@ -190,7 +190,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
               onSelect={() => setIsEditing(true)}
             >
-              <ZoomIn className="mr-2 h-3.5 w-3.5" />
+              <Edit className="mr-2 h-3.5 w-3.5" />
               Renombrar Capa
             </DropdownMenuItem>
             <DropdownMenuItem
