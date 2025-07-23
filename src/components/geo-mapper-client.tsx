@@ -67,8 +67,8 @@ const osmCategoryConfig: OSMCategoryConfig[] = [
   },
   {
     id: 'bridges', name: 'OSM Puentes',
-    overpassQueryFragment: (bboxStr) => `nwr[man_made="bridge"](${bboxStr});`,
-    matcher: (tags) => tags && tags.man_made === 'bridge',
+    overpassQueryFragment: (bboxStr) => `( nwr[man_made="bridge"](${bboxStr}); nwr["name"~"bridge|puente",i](${bboxStr}); );`,
+    matcher: (tags) => tags && (tags.man_made === 'bridge' || (tags.name && /(puente|bridge)/i.test(tags.name))),
     style: new Style({ stroke: new Stroke({ color: '#6c757d', width: 4 }) })
   },
   {
