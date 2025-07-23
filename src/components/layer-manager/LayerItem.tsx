@@ -120,6 +120,11 @@ const LayerItem: React.FC<LayerItemProps> = ({
     }
   };
 
+  const handleRenameSelect = (e: Event) => {
+    e.preventDefault(); // Prevent the dropdown from closing
+    setIsEditing(true);
+  };
+
 
   return (
     <li 
@@ -193,7 +198,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <DropdownMenuContent side="right" align="start" className="bg-gray-700 text-white border-gray-600 w-56">
              <DropdownMenuItem
               className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
-              onSelect={() => setIsEditing(true)}
+              onSelect={handleRenameSelect}
             >
               <Edit className="mr-2 h-3.5 w-3.5" />
               Renombrar Capa
