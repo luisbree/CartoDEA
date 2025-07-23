@@ -29,7 +29,7 @@ interface ToolsPanelProps {
 
   // Drawing props
   activeDrawTool: string | null;
-  onToggleDrawingTool: (toolType: 'Polygon' | 'LineString' | 'Point' | 'Rectangle') => void;
+  onToggleDrawingTool: (toolType: 'Polygon' | 'LineString' | 'Point' | 'Rectangle' | 'FreehandPolygon') => void;
   onClearDrawnFeatures: () => void;
   onSaveDrawnFeaturesAsKML: () => void;
 

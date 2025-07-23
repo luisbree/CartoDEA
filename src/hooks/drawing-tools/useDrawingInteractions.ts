@@ -34,7 +34,7 @@ export const useDrawingInteractions = ({
     setActiveDrawTool(null);
   }, [mapRef]);
 
-  const toggleDrawingTool = useCallback((toolType: 'Polygon' | 'LineString' | 'Point' | 'Rectangle') => {
+  const toggleDrawingTool = useCallback((toolType: 'Polygon' | 'LineString' | 'Point' | 'Rectangle' | 'FreehandPolygon') => {
     if (!mapRef.current || !drawingSourceRef.current) return;
 
     // If the same tool is clicked again, stop it
@@ -53,10 +53,19 @@ export const useDrawingInteractions = ({
       source: drawingSourceRef.current,
       type: toolType,
     };
+    
+    let toastMessage = `Herramienta de dibujo de ${toolType} activada.`;
 
     if (toolType === 'Rectangle') {
       drawOptions.type = 'Circle'; // OL uses 'Circle' type with a geometry function for boxes
       drawOptions.geometryFunction = createBox();
+      toastMessage = `Herramienta de dibujo de Rectángulo activada.`;
+    }
+
+    if (toolType === 'FreehandPolygon') {
+        drawOptions.type = 'Polygon';
+        drawOptions.freehand = true;
+        toastMessage = `Herramienta de dibujo a Mano Alzada activada.`;
     }
 
     const newDrawInteraction = new Draw(drawOptions);
@@ -65,7 +74,7 @@ export const useDrawingInteractions = ({
     drawInteractionRef.current = newDrawInteraction;
     setActiveDrawTool(toolType);
     
-    toast({ description: `Herramienta de dibujo de ${toolType === 'Rectangle' ? 'Rectángulo' : toolType} activada.` });
+    toast({ description: toastMessage });
 
   }, [mapRef, drawingSourceRef, activeDrawTool, stopDrawingTool, isInspectModeActive, toggleInspectMode, toast]);
 
