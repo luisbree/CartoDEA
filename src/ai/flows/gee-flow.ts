@@ -62,7 +62,7 @@ const geeTileLayerFlow = ai.defineFlow(
       ];
 
       // Base Sentinel-2 Image Collection
-      if (bandCombination !== 'JRC_WATER_OCCURRENCE' && bandCombination !== 'OPENLANDMAP_SOC' && bandCombination !== 'DYNAMIC_WORLD') {
+      if (bandCombination !== 'JRC_WATER_OCCURRENCE' && bandCombination !== 'OPENLANDMAP_SOC' && bandCombination !== 'DYNAMIC_WORLD' && bandCombination !== 'NASADEM_ELEVATION') {
           let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
             .filterBounds(geometry)
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
@@ -141,6 +141,14 @@ const geeTileLayerFlow = ai.defineFlow(
             min: 0,
             max: 8,
             palette: DYNAMIC_WORLD_PALETTE
+          };
+          
+      } else if (bandCombination === 'NASADEM_ELEVATION') {
+          finalImage = ee.Image('NASA/NASADEM_HGT/001').select('elevation');
+          visParams = {
+              min: 0,
+              max: 4000,
+              palette: ['006633', 'E5FFCC', '662A00', 'D8D8D8', 'FFFFFF'] // Terrain palette
           };
 
       } else if (bandCombination === 'OPENLANDMAP_SOC') {

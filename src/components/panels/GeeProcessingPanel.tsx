@@ -109,6 +109,9 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                 case 'DYNAMIC_WORLD':
                     layerName = 'Dynamic World Land Cover';
                     break;
+                case 'NASADEM_ELEVATION':
+                    layerName = 'NASADEM Modelo de Elevación';
+                    break;
                 default:
                     layerName = 'Capa GEE';
             }
@@ -154,7 +157,7 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
     );
   };
 
-  const isDateSelectionDisabled = selectedCombination === 'JRC_WATER_OCCURRENCE' || selectedCombination === 'OPENLANDMAP_SOC';
+  const isDateSelectionDisabled = ['JRC_WATER_OCCURRENCE', 'OPENLANDMAP_SOC', 'NASADEM_ELEVATION'].includes(selectedCombination);
 
   return (
     <DraggablePanel
@@ -197,6 +200,10 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                <div className="flex items-center space-x-2">
                 <RadioGroupItem value="DYNAMIC_WORLD" id="dw-combo" />
                 <Label htmlFor="dw-combo" className="text-xs font-normal">Cobertura del Suelo (Dynamic World)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="NASADEM_ELEVATION" id="nasadem-combo" />
+                <Label htmlFor="nasadem-combo" className="text-xs font-normal">Modelo de Elevación (NASADEM)</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="JRC_WATER_OCCURRENCE" id="jrc-combo" />
