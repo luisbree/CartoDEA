@@ -550,6 +550,12 @@ export default function GeoMapperClient() {
   }, [handleAddHybridLayer, initialGeoServerUrl]);
 
   const handleAttributeTableFeatureSelect = useCallback((featureId: string, isCtrlOrMeta: boolean) => {
+      // NEW: Automatically enable inspection mode if it's off
+      if (!featureInspectionHook.isInspectModeActive) {
+        featureInspectionHook.toggleInspectMode();
+        toast({ description: 'Modo Inspección activado para mostrar selección.' });
+      }
+
       const currentSelectedIds = featureInspectionHook.selectedFeatures.map(f => f.getId() as string);
       let newSelectedIds: string[];
 
@@ -561,7 +567,7 @@ export default function GeoMapperClient() {
           newSelectedIds = [featureId];
       }
       featureInspectionHook.selectFeaturesById(newSelectedIds);
-  }, [featureInspectionHook]);
+  }, [featureInspectionHook, toast]);
 
 
   return (
@@ -824,3 +830,5 @@ export default function GeoMapperClient() {
     </div>
   );
 }
+
+    
