@@ -66,6 +66,12 @@ const osmCategoryConfig: OSMCategoryConfig[] = [
     style: new Style({ stroke: new Stroke({ color: '#adb5bd', width: 3 }) })
   },
   {
+    id: 'bridges', name: 'OSM Puentes',
+    overpassQueryFragment: (bboxStr) => `nwr[man_made="bridge"](${bboxStr});`,
+    matcher: (tags) => tags && tags.man_made === 'bridge',
+    style: new Style({ stroke: new Stroke({ color: '#6c757d', width: 4 }) })
+  },
+  {
     id: 'admin_boundaries', name: 'OSM Límites Admin.',
     overpassQueryFragment: (bboxStr) => `nwr[boundary="administrative"][admin_level](${bboxStr});`,
     matcher: (tags) => tags && tags.boundary === 'administrative' && tags.admin_level,
@@ -830,5 +836,3 @@ export default function GeoMapperClient() {
     </div>
   );
 }
-
-    
