@@ -469,6 +469,9 @@ export default function GeoMapperClient() {
         });
         if (layerToShowTable) {
             layerManagerHook.handleShowLayerTable(layerToShowTable.id);
+            if (panels.attributes.isMinimized) {
+              togglePanelMinimize('attributes');
+            }
         } else {
             toast({description: `Drax intentó mostrar la tabla de una capa no encontrada: ${action.showTableForLayer}`});
         }
@@ -523,7 +526,7 @@ export default function GeoMapperClient() {
       toast({ description: `Abriendo Trello en una nueva pestaña...` });
     }
 
-  }, [discoveredGeoServerLayers, handleAddHybridLayer, toast, layerManagerHook, zoomToBoundingBox, handleChangeBaseLayer, osmDataHook, initialGeoServerUrl]);
+  }, [discoveredGeoServerLayers, handleAddHybridLayer, toast, layerManagerHook, zoomToBoundingBox, handleChangeBaseLayer, osmDataHook, initialGeoServerUrl, panels, togglePanelMinimize]);
 
   const handleSearchTrelloCard = useCallback(async (searchTerm: string) => {
     setIsTrelloLoading(true);
