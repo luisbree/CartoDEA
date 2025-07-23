@@ -106,6 +106,9 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                 case 'OPENLANDMAP_SOC':
                     layerName = 'Carbono Org. del Suelo (OpenLandMap)';
                     break;
+                case 'DYNAMIC_WORLD':
+                    layerName = 'Dynamic World Land Cover';
+                    break;
                 default:
                     layerName = 'Capa GEE';
             }
@@ -191,6 +194,10 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                 <RadioGroupItem value="NDVI" id="ndvi-combo" />
                 <Label htmlFor="ndvi-combo" className="text-xs font-normal">Índice de Vegetación (NDVI)</Label>
               </div>
+               <div className="flex items-center space-x-2">
+                <RadioGroupItem value="DYNAMIC_WORLD" id="dw-combo" />
+                <Label htmlFor="dw-combo" className="text-xs font-normal">Cobertura del Suelo (Dynamic World)</Label>
+              </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="JRC_WATER_OCCURRENCE" id="jrc-combo" />
                 <Label htmlFor="jrc-combo" className="text-xs font-normal">Agua Superficial (JRC)</Label>
@@ -204,7 +211,7 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
 
         <div className="pt-2 border-t border-white/10">
           <Label className={cn("text-sm font-semibold text-white mb-2 block", isDateSelectionDisabled && "text-gray-500")}>
-              Rango de Fechas (Sentinel-2)
+              Rango de Fechas (Sentinel-2 / Dynamic World)
           </Label>
           <Popover>
             <PopoverTrigger asChild>

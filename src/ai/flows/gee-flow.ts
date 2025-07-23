@@ -49,8 +49,20 @@ const geeTileLayerFlow = ai.defineFlow(
       let finalImage;
       let visParams: { bands?: string[]; min: number; max: number; gamma?: number, palette?: string[] };
       
+      const DYNAMIC_WORLD_PALETTE = [
+        '#419BDF', // water
+        '#397D49', // trees
+        '#88B053', // grass
+        '#7A87C6', // flooded_vegetation
+        '#E49635', // crops
+        '#DFC35A', // shrub_and_scrub
+        '#C4281B', // built
+        '#A59B8F', // bare
+        '#B39FE1', // snow_and_ice
+      ];
+
       // Base Sentinel-2 Image Collection
-      if (bandCombination !== 'JRC_WATER_OCCURRENCE' && bandCombination !== 'OPENLANDMAP_SOC') {
+      if (bandCombination !== 'JRC_WATER_OCCURRENCE' && bandCombination !== 'OPENLANDMAP_SOC' && bandCombination !== 'DYNAMIC_WORLD') {
           let s2ImageCollection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
             .filterBounds(geometry)
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
@@ -119,6 +131,18 @@ const geeTileLayerFlow = ai.defineFlow(
               };
               break;
           }
+      } else if (bandCombination === 'DYNAMIC_WORLD') {
+          const dwCollection = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1')
+            .filterBounds(geometry)
+            .filterDate(startDate, endDate);
+            
+          finalImage = ee.Image(dwCollection.mode()).select('label');
+          visParams = {
+            min: 0,
+            max: 8,
+            palette: DYNAMIC_WORLD_PALETTE
+          };
+
       } else if (bandCombination === 'OPENLANDMAP_SOC') {
           finalImage = ee.Image("OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02").select('b0');
           visParams = {
