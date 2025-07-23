@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { MapLayer, GeoServerDiscoveredLayer } from '@/lib/types';
 import { nanoid } from 'nanoid';
 import { Style, Fill, Stroke } from 'ol/style';
+import { bbox as bboxStrategy } from 'ol/loadingstrategy';
 
 
 interface UseGeoServerLayersProps {
@@ -108,19 +109,11 @@ export const useGeoServerLayers = ({
 
   const handleAddHybridLayer = useCallback(async (layerName: string, layerTitle: string, serverUrl: string, bbox?: [number, number, number, number]) => {
       if (!isMapReady || !mapRef.current) return;
-
-      setIsWfsLoading(true);
-
-      const wfsPromise = (async () => {
-          const wfsUrl = `${serverUrl}/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=${layerName}&outputFormat=application/json&srsname=EPSG:3857`;
-          const proxyUrl = `/api/geoserver-proxy?url=${encodeURIComponent(wfsUrl)}&cacheBust=${Date.now()}`;
-          const response = await fetch(proxyUrl);
-          if (!response.ok) throw new Error(`WFS request failed for ${layerName}`);
-          return response.json();
-      })();
+      
+      const map = mapRef.current;
       
       try {
-          // Add WMS layer for visualization (will be hidden from legend)
+          // 1. Add WMS layer for visualization (this is always fast)
           const wmsSource = new TileWMS({
               url: `${serverUrl}/wms`,
               params: { 'LAYERS': layerName, 'TILED': true },
@@ -134,27 +127,47 @@ export const useGeoServerLayers = ({
               source: wmsSource,
               properties: { id: wmsLayerId, name: `${layerTitle} (Visual)`, type: 'wms', gsLayerName: layerName, isVisualOnly: true, bbox: bbox },
           });
+          map.addLayer(wmsLayer);
 
-          // Add WMS layer without adding to the UI state
-          mapRef.current.addLayer(wmsLayer);
-
-          // Now wait for the WFS data
-          const geojsonData = await wfsPromise;
-          if (!geojsonData || !geojsonData.features) {
-              mapRef.current.removeLayer(wmsLayer); // Clean up WMS layer if WFS fails
-              throw new Error("La capa no contiene entidades WFS o la respuesta está vacía.");
-          }
-
-          // Read features and ensure they have IDs
-          const features = new GeoJSON().readFeatures(geojsonData);
-          features.forEach(feature => {
-            if(!feature.getId()) {
-                feature.setId(nanoid());
-            }
+          // 2. Setup WFS VectorSource with BBOX loading strategy
+          const vectorSource = new VectorSource({
+              format: new GeoJSON(),
+              strategy: bboxStrategy,
+              loader: function (extent, resolution, projection) {
+                  setIsWfsLoading(true);
+                  const proj = projection.getCode();
+                  const wfsUrl = `${serverUrl}/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=${layerName}&outputFormat=application/json&srsname=${proj}&bbox=${extent.join(',')},${proj}`;
+                  const proxyUrl = `/api/geoserver-proxy?url=${encodeURIComponent(wfsUrl)}&cacheBust=${Date.now()}`;
+                  
+                  fetch(proxyUrl)
+                    .then(response => {
+                      if (!response.ok) {
+                        throw new Error(`Fallo en la solicitud WFS para ${layerName}`);
+                      }
+                      return response.json();
+                    })
+                    .then(data => {
+                      const features = vectorSource.getFormat()!.readFeatures(data);
+                      // Ensure all features get a unique ID for selection to work
+                      features.forEach(f => {
+                        if (!f.getId()) {
+                          f.setId(nanoid());
+                        }
+                      });
+                      vectorSource.addFeatures(features);
+                    })
+                    .catch(error => {
+                      console.error(`Error al cargar entidades WFS para ${layerName}:`, error);
+                      toast({ description: `No se pudieron cargar las entidades para ${layerTitle}.`, variant: "destructive" });
+                      vectorSource.removeLoadedExtent(extent); // Important: tell the source the load failed
+                    })
+                    .finally(() => {
+                      setIsWfsLoading(false);
+                    });
+              }
           });
 
-          const vectorSource = new VectorSource({ features });
-
+          // 3. Create the invisible VectorLayer for interaction
           const wfsLayerId = `wfs-data-${layerName}-${nanoid()}`;
           const vectorLayer = new VectorLayer({
               source: vectorSource,
@@ -164,9 +177,8 @@ export const useGeoServerLayers = ({
                   name: layerTitle || layerName,
                   type: 'wfs',
                   gsLayerName: layerName,
-                  isDeas: true, // It is a DEAS layer
+                  isDeas: true,
                   bbox: bbox,
-                  // Link to the WMS layer for removal
                   linkedWmsLayerId: wmsLayerId
               }
           });
@@ -175,21 +187,20 @@ export const useGeoServerLayers = ({
               id: wfsLayerId,
               name: layerTitle,
               olLayer: vectorLayer,
-              visible: true, // The WFS layer is "visible" in the list, but transparent on map
+              visible: true,
               opacity: 1,
               type: 'wfs',
               isDeas: true,
-          }, false); // Add to bottom of user layers
+          }, false);
           
-          onLayerStateUpdate(layerName, true, 'wfs'); // Mark WFS as added
-          onLayerStateUpdate(layerName, true, 'wms'); // Also mark WMS as added
+          onLayerStateUpdate(layerName, true, 'wfs');
+          onLayerStateUpdate(layerName, true, 'wms');
           toast({ description: `Capa "${layerTitle}" añadida.` });
 
       } catch (error: any) {
           console.error("Error adding hybrid WMS/WFS layer:", error);
-          toast({ description: `Error al cargar la capa WFS: ${error.message}`, variant: 'destructive' });
-      } finally {
-          setIsWfsLoading(false);
+          toast({ description: `Error al añadir capa: ${error.message}`, variant: 'destructive' });
+          setIsWfsLoading(false); // Ensure loading is stopped on initial setup error
       }
   }, [isMapReady, mapRef, addLayer, onLayerStateUpdate, toast, setIsWfsLoading]);
 
