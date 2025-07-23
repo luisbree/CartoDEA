@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -83,36 +82,30 @@ const AttributesPanel: React.FC<AttributesPanelProps> = ({
     }
     setSortConfig({ key, direction });
   };
+  
+  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  
+  const handleRowClick = useCallback((featureId: string, event: React.MouseEvent) => {
+      onFeatureSelect(featureId, event.ctrlKey || event.metaKey);
+  }, [onFeatureSelect]);
 
+  const isValidUrl = (urlString: string): boolean => {
+    try {
+      new URL(urlString);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
 
-  if (!inspectedFeatures || inspectedFeatures.length === 0) {
-    return (
-      <DraggablePanel
-        title="Atributos"
-        icon={ListChecks}
-        panelRef={panelRef}
-        initialPosition={{ x:0, y:0}} 
-        onMouseDownHeader={onMouseDownHeader}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={onToggleCollapse}
-        onClose={onClosePanel} 
-        showCloseButton={true}
-        style={style}
-        zIndex={style?.zIndex as number | undefined}
-      >
-        <div className="p-3 text-sm text-gray-300 text-center">
-          Use la herramienta de inspección para ver los atributos de una entidad.
-        </div>
-      </DraggablePanel>
-    );
-  }
-
+  const hasFeatures = inspectedFeatures && inspectedFeatures.length > 0;
   const totalPages = Math.ceil((sortedFeatures?.length || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentVisibleFeatures = sortedFeatures?.slice(startIndex, endIndex) || [];
 
-  const allKeys = Array.from(
+  const allKeys = useMemo(() => Array.from(
     new Set(currentVisibleFeatures.flatMap(feature => Object.keys(feature.getProperties())))
   )
   .filter(key => key !== 'description' && key !== 'gmlgeometry' && key !== 'geometry')
@@ -127,28 +120,12 @@ const AttributesPanel: React.FC<AttributesPanelProps> = ({
     if (aIsSpecial) return 1;
     if (bIsSpecial) return -1;
     return a.localeCompare(b);
-  });
+  }), [currentVisibleFeatures]);
 
-  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
-  const panelTitle = layerName 
+  const panelTitle = layerName && hasFeatures
     ? `Atributos: ${layerName} (${inspectedFeatures.length})` 
-    : `Atributos (${inspectedFeatures.length})`;
-
-  const isValidUrl = (urlString: string): boolean => {
-    try {
-      new URL(urlString);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const handleRowClick = useCallback((featureId: string, event: React.MouseEvent) => {
-      onFeatureSelect(featureId, event.ctrlKey || event.metaKey);
-  }, [onFeatureSelect]);
-
+    : 'Atributos';
 
   return (
     <DraggablePanel
@@ -168,117 +145,116 @@ const AttributesPanel: React.FC<AttributesPanelProps> = ({
       overflowY="auto"
       zIndex={style?.zIndex as number | undefined}
     >
-      <div className="flex-grow flex flex-col"> 
-          {allKeys.length > 0 && currentVisibleFeatures.length > 0 ? (
-            <div className="flex-grow min-w-0"> 
-              <Table><TableHeader>
-                  <TableRow className="hover:bg-gray-800/70">
-                    {allKeys.map(key => (
-                      <TableHead
-                        key={key}
-                        className="px-3 py-2 text-xs font-medium text-gray-300 whitespace-nowrap bg-gray-700/50 cursor-pointer hover:bg-gray-600/50"
-                        onClick={() => requestSort(key)}
-                      >
-                        <div className="flex items-center gap-2">
-                           {key === 'preview_url' ? 'Vista Previa' : key === 'browser_url' ? 'Navegador' : key}
-                           {sortConfig?.key === key && (
-                               sortConfig.direction === 'ascending' 
-                                   ? <ArrowUp className="h-3 w-3" /> 
-                                   : <ArrowDown className="h-3 w-3" />
-                           )}
-                        </div>
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader><TableBody>
-                  {currentVisibleFeatures.map((feature) => {
-                    const featureId = feature.getId() as string;
-                    const isSelected = selectedFeatureIds.includes(featureId);
-                    const attrs = feature.getProperties();
-
-                    return (
-                      <TableRow 
-                        key={featureId} 
-                        data-state={isSelected ? "selected" : "unselected"}
-                        className="cursor-pointer"
-                        onClick={(e) => handleRowClick(featureId, e)}
-                      >
+      <div className="flex-grow flex flex-col h-full"> 
+          {hasFeatures && allKeys.length > 0 ? (
+            <>
+                <div className="flex-grow min-w-0"> 
+                  <Table><TableHeader>
+                      <TableRow className="hover:bg-gray-800/70">
                         {allKeys.map(key => (
-                          <TableCell
+                          <TableHead
                             key={key}
-                            className="px-3 py-1.5 text-xs text-slate-200 dark:text-slate-200 border-b border-gray-700/50 whitespace-normal break-words"
+                            className="px-3 py-2 text-xs font-medium text-gray-300 whitespace-nowrap bg-gray-700/50 cursor-pointer hover:bg-gray-600/50"
+                            onClick={() => requestSort(key)}
                           >
-                            {key === 'preview_url' && attrs[key] && isValidUrl(String(attrs[key])) ? (
-                              <a
-                                href={String(attrs[key])}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-400 hover:text-blue-300 underline flex items-center"
-                                title={`Abrir vista previa`}
-                                onClick={(e) => e.stopPropagation()} // Prevent row click from firing
-                              >
-                                <LinkIcon className="h-3 w-3 mr-1" />
-                                Abrir Vista
-                              </a>
-                            ) : key === 'browser_url' && attrs[key] && isValidUrl(String(attrs[key])) ? (
-                              <a
-                                href={String(attrs[key])}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-green-400 hover:text-green-300 underline flex items-center"
-                                title={`Ver escena en el navegador de Copernicus`}
-                                onClick={(e) => e.stopPropagation()} // Prevent row click from firing
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                Ver en Navegador
-                              </a>
-                            ) : (
-                              String(attrs[key] === null || attrs[key] === undefined ? '' : attrs[key])
-                            )}
-                          </TableCell>
+                            <div className="flex items-center gap-2">
+                               {key === 'preview_url' ? 'Vista Previa' : key === 'browser_url' ? 'Navegador' : key}
+                               {sortConfig?.key === key && (
+                                   sortConfig.direction === 'ascending' 
+                                       ? <ArrowUp className="h-3 w-3" /> 
+                                       : <ArrowDown className="h-3 w-3" />
+                               )}
+                            </div>
+                          </TableHead>
                         ))}
                       </TableRow>
-                    )
-                  })}
-                </TableBody></Table>
-            </div>
+                    </TableHeader><TableBody>
+                      {currentVisibleFeatures.map((feature) => {
+                        const featureId = feature.getId() as string;
+                        const isSelected = selectedFeatureIds.includes(featureId);
+                        const attrs = feature.getProperties();
+
+                        return (
+                          <TableRow 
+                            key={featureId} 
+                            data-state={isSelected ? "selected" : "unselected"}
+                            className="cursor-pointer"
+                            onClick={(e) => handleRowClick(featureId, e)}
+                          >
+                            {allKeys.map(key => (
+                              <TableCell
+                                key={key}
+                                className="px-3 py-1.5 text-xs text-slate-200 dark:text-slate-200 border-b border-gray-700/50 whitespace-normal break-words"
+                              >
+                                {key === 'preview_url' && attrs[key] && isValidUrl(String(attrs[key])) ? (
+                                  <a
+                                    href={String(attrs[key])}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 underline flex items-center"
+                                    title={`Abrir vista previa`}
+                                    onClick={(e) => e.stopPropagation()} // Prevent row click from firing
+                                  >
+                                    <LinkIcon className="h-3 w-3 mr-1" />
+                                    Abrir Vista
+                                  </a>
+                                ) : key === 'browser_url' && attrs[key] && isValidUrl(String(attrs[key])) ? (
+                                  <a
+                                    href={String(attrs[key])}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-green-400 hover:text-green-300 underline flex items-center"
+                                    title={`Ver escena en el navegador de Copernicus`}
+                                    onClick={(e) => e.stopPropagation()} // Prevent row click from firing
+                                  >
+                                    <ExternalLink className="h-3 w-3 mr-1" />
+                                    Ver en Navegador
+                                  </a>
+                                ) : (
+                                  String(attrs[key] === null || attrs[key] === undefined ? '' : attrs[key])
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody></Table>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center p-2 border-t border-gray-700/50 bg-gray-800/50 mt-auto shrink-0 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className="text-xs h-7 bg-gray-600/70 hover:bg-gray-500/70 border-gray-500 text-white"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                      Anterior
+                    </Button>
+                    <span className="text-xs text-gray-300 whitespace-nowrap">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="text-xs h-7 bg-gray-600/70 hover:bg-gray-500/70 border-gray-500 text-white"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+                )}
+            </>
           ) : (
             <div className="flex-grow flex items-center justify-center p-3">
                 <p className="text-sm text-center text-gray-300">
-                {inspectedFeatures.length > 0
-                    ? 'No hay atributos para mostrar para la selección actual.'
-                    : 'No se encontraron atributos para las entidades seleccionadas.'}
+                    Use la herramienta de inspección para ver los atributos de una entidad.
                 </p>
             </div>
           )}
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center p-2 border-t border-gray-700/50 bg-gray-800/50 mt-auto shrink-0 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrevPage}
-              disabled={currentPage === 1}
-              className="text-xs h-7 bg-gray-600/70 hover:bg-gray-500/70 border-gray-500 text-white"
-            >
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              Anterior
-            </Button>
-            <span className="text-xs text-gray-300 whitespace-nowrap">
-              Página {currentPage} de {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              className="text-xs h-7 bg-gray-600/70 hover:bg-gray-500/70 border-gray-500 text-white"
-            >
-              Siguiente
-              <ChevronRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          </div>
-        )}
       </div>
     </DraggablePanel>
   );
