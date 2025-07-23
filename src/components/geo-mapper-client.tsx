@@ -67,8 +67,10 @@ const osmCategoryConfig: OSMCategoryConfig[] = [
   },
   {
     id: 'bridges', name: 'OSM Puentes',
-    overpassQueryFragment: (bboxStr) => `( nwr[man_made="bridge"](${bboxStr}); nwr["name"~"bridge|puente",i](${bboxStr}); );`,
-    matcher: (tags) => tags && (tags.man_made === 'bridge' || (tags.name && /(puente|bridge)/i.test(tags.name))),
+    overpassQueryFragment: (bboxStr) => `nwr[~"."~"[Bb]ridge|[Pp]uente",i](${bboxStr});`,
+    matcher: (tags) => tags && Object.entries(tags).some(([key, value]) =>
+        /bridge|puente/i.test(key) || (typeof value === 'string' && /bridge|puente/i.test(value))
+    ),
     style: new Style({ stroke: new Stroke({ color: '#6c757d', width: 4 }) })
   },
   {
@@ -686,7 +688,7 @@ export default function GeoMapperClient() {
             selectedOSMCategoryIds={osmDataHook.selectedOSMCategoryIds}
             onSelectedOSMCategoriesChange={osmDataHook.setSelectedOSMCategoryIds}
             isDownloading={osmDataHook.isDownloading}
-            onDownloadOSMLayers={() => osmDataHook.handleDownloadOSMLayers(layerManagerHook.layers)}
+            onDownloadOSMLayers={() => osmDataHook.handleDownloadOSMLayers(layerManagerHook.layers, 'shp')}
             style={{ top: `${panels.tools.position.y}px`, left: `${panels.tools.position.x}px`, zIndex: panels.tools.zIndex }}
           />
         )}
@@ -836,3 +838,4 @@ export default function GeoMapperClient() {
     </div>
   );
 }
+
