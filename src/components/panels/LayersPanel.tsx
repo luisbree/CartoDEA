@@ -8,8 +8,9 @@ import LocationSearch from '@/components/location-search/LocationSearch';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import type { BaseLayerOptionForSelect, NominatimResult, BaseLayerSettings } from '@/lib/types'; 
-import { Database, Search, ImageUp, ImageOff, Loader2, Camera } from 'lucide-react';
+import { Database, Search, ImageUp, ImageOff, Loader2 } from 'lucide-react';
 import BaseLayerControls from '../layer-manager/BaseLayerControls';
+import { StreetViewIcon } from '@/components/icons/StreetViewIcon';
 
 interface LayersPanelProps {
   panelRef: React.RefObject<HTMLDivElement>;
@@ -57,7 +58,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({
   
   return (
     <DraggablePanel
-      title="Datos"
+      title="Datos y Vista"
       icon={Database}
       panelRef={panelRef}
       initialPosition={{ x: 0, y: 0 }} 
@@ -86,7 +87,7 @@ const LayersPanel: React.FC<LayersPanelProps> = ({
                 className="h-8 w-8 flex-shrink-0 bg-black/20 hover:bg-black/40 border border-white/30 text-white/90"
                 title="Abrir Google Street View en la ubicación actual"
             >
-                <Camera className="h-4 w-4" />
+                <StreetViewIcon className="h-5 w-5" />
             </Button>
         </div>
 
