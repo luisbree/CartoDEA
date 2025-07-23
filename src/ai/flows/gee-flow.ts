@@ -161,10 +161,15 @@ const geeTileLayerFlow = ai.defineFlow(
           const getInfo = promisify(minMax.getInfo).bind(minMax);
           const stats = await getInfo();
           
-          let minVal = stats.elevation_min ?? 0;
-          let maxVal = stats.elevation_max ?? 4000;
+          let minVal = 0;
+          let maxVal = 4000;
 
-          // Add a small buffer to min and max if they are the same
+          if (stats && stats.elevation_min !== null && stats.elevation_max !== null) {
+              minVal = stats.elevation_min;
+              maxVal = stats.elevation_max;
+          }
+
+          // Add a small buffer to min and max if they are the same to ensure a valid range
           if (minVal === maxVal) {
               minVal -= 1;
               maxVal += 1;
@@ -216,7 +221,7 @@ const geeTileLayerFlow = ai.defineFlow(
         } else if (error.message && error.message.includes('computation timed out')) {
             throw new Error('El procesamiento en Earth Engine tardó demasiado. Intente con un área más pequeña.');
         }
-        // Throw the original error message for better diagnostics
+        // Throw a more informative error message
         throw new Error(`Ocurrió un error al generar la capa de Earth Engine: ${error.message || 'Error desconocido'}`);
     }
   }
