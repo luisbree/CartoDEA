@@ -93,6 +93,21 @@ const geeTileLayerFlow = ai.defineFlow(
                 palette: ['#2ca25f', '#ffffbf', '#fdae61', '#d7191c'] // Green -> Yellow -> Orange -> Red (vegetation to bare soil)
               };
               break;
+              
+            case 'NDVI':
+              // NDVI formula: NDVI = (NIR - Red) / (NIR + Red)
+              // For Sentinel-2, this is (B8 - B4) / (B8 + B4)
+              finalImage = s2Image.normalizedDifference(['B8', 'B4']).rename('NDVI');
+              visParams = {
+                min: -0.2, // Min NDVI for non-vegetated areas
+                max: 1.0,  // Max NDVI for dense vegetation
+                palette: [
+                  '#a50026', '#d73027', '#f46d43', '#fdae61', '#fee08b', // Reds to Yellows (low NDVI)
+                  '#ffffbf', // Yellow-Green
+                  '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850', '#006837'  // Greens (high NDVI)
+                ]
+              };
+              break;
             
             case 'URBAN_FALSE_COLOR':
             default:

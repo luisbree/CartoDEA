@@ -19,7 +19,7 @@ const GeeAoiSchema = z.object({
 export const GeeTileLayerInputSchema = z.object({
   aoi: GeeAoiSchema.describe("The Area of Interest as a bounding box."),
   zoom: z.number().describe("The current zoom level of the map."),
-  bandCombination: z.enum(['URBAN_FALSE_COLOR', 'SWIR_FALSE_COLOR', 'BSI', 'JRC_WATER_OCCURRENCE', 'OPENLANDMAP_SOC']).describe("The band combination or index to use for the layer."),
+  bandCombination: z.enum(['URBAN_FALSE_COLOR', 'SWIR_FALSE_COLOR', 'BSI', 'NDVI', 'JRC_WATER_OCCURRENCE', 'OPENLANDMAP_SOC']).describe("The band combination or index to use for the layer."),
   startDate: z.string().optional().describe("The start date for the image search in YYYY-MM-DD format."),
   endDate: z.string().optional().describe("The end date for the image search in YYYY-MM-DD format."),
 });

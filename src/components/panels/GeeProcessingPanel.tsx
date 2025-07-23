@@ -97,6 +97,9 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                 case 'BSI':
                     layerName = 'Índice de Suelo Desnudo (BSI) GEE';
                     break;
+                case 'NDVI':
+                    layerName = 'Índice de Vegetación (NDVI) GEE';
+                    break;
                 case 'JRC_WATER_OCCURRENCE':
                     layerName = 'Agua Superficial (JRC)';
                     break;
@@ -183,6 +186,10 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                <div className="flex items-center space-x-2">
                 <RadioGroupItem value="BSI" id="bsi-combo" />
                 <Label htmlFor="bsi-combo" className="text-xs font-normal">Índice de Suelo Desnudo (BSI)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="NDVI" id="ndvi-combo" />
+                <Label htmlFor="ndvi-combo" className="text-xs font-normal">Índice de Vegetación (NDVI)</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="JRC_WATER_OCCURRENCE" id="jrc-combo" />
