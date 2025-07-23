@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -258,7 +259,7 @@ export const useLayerManager = ({
     const image = baseStyle.getImage() instanceof CircleStyle ? baseStyle.getImage().clone() as CircleStyle : new CircleStyle({
         radius: 5,
         fill: new Fill({ color: 'rgba(51, 153, 204, 0.2)' }),
-        stroke: new Stroke({ color: '#3399CC', width: 1 })
+        stroke: new Stroke({ color: '#3399CC', width: 1.5 })
     });
     
     let styleChanged = false;
@@ -360,12 +361,17 @@ export const useLayerManager = ({
     setLayers(prev =>
       prev.map(l => {
         if (l.id === layerId) {
-          toast({ description: `Capa renombrada a "${newName}"` });
           return { ...l, name: newName };
         }
         return l;
       })
     );
+    // The toast needs to be called outside the immediate state update function
+    // to avoid the React warning about updating a component from another's render.
+    // A microtask (setTimeout) ensures this runs after the current render cycle.
+    setTimeout(() => {
+      toast({ description: `Capa renombrada a "${newName}"` });
+    }, 0);
   }, [toast]);
 
   const isDrawingSourceEmptyOrNotPolygon = true; // Placeholder, will be replaced with real logic
