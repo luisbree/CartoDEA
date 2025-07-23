@@ -6,6 +6,7 @@ import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { transformExtent, type ProjectionLike } from 'ol/proj';
 import type { Extent } from 'ol/extent';
+import { nanoid } from 'nanoid';
 
 const SENTINEL_API_URL = 'https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/search.json';
 
@@ -65,6 +66,10 @@ export async function findSentinel2Footprints(
     // Add a preview URL and a browser URL to the properties
     const features = geojsonFormat.readFeatures(data);
     features.forEach((feature, index) => {
+        // Ensure every feature has a unique ID for selection purposes
+        if (!feature.getId()) {
+            feature.setId(nanoid());
+        }
         const originalFeature = data.features[index];
         if(originalFeature.properties.thumbnail) {
             feature.set('preview_url', originalFeature.properties.thumbnail);

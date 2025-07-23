@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback } from 'react';
@@ -86,7 +87,7 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
 
             return {
                 type: 'Feature',
-                id: element.id,
+                id: `${element.type}/${element.id}`, // Ensure a unique ID for features
                 properties,
                 geometry
             };
@@ -108,6 +109,10 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
         selectedConfigs.forEach(c => featuresByCategory[c.id] = []);
 
         allFeatures.forEach((feature) => {
+            // Ensure feature has an ID for selection
+            if (!feature.getId()) {
+                feature.setId(nanoid());
+            }
             const properties = feature.getProperties();
             for (const config of selectedConfigs) {
                 if (config.matcher(properties)) {

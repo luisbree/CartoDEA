@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
@@ -144,9 +145,15 @@ export const useGeoServerLayers = ({
               throw new Error("La capa no contiene entidades WFS o la respuesta está vacía.");
           }
 
-          const vectorSource = new VectorSource({
-              features: new GeoJSON().readFeatures(geojsonData),
+          // Read features and ensure they have IDs
+          const features = new GeoJSON().readFeatures(geojsonData);
+          features.forEach(feature => {
+            if(!feature.getId()) {
+                feature.setId(nanoid());
+            }
           });
+
+          const vectorSource = new VectorSource({ features });
 
           const wfsLayerId = `wfs-data-${layerName}-${nanoid()}`;
           const vectorLayer = new VectorLayer({

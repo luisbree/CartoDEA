@@ -45,7 +45,7 @@ export const useFeatureInspection = ({
   const [isInspectModeActive, setIsInspectModeActive] = useState(false);
   const [selectionMode, setSelectionModeInternal] = useState<'click' | 'box'>('click');
   const [selectedFeatures, setSelectedFeatures] = useState<Feature<Geometry>[]>([]);
-  const [selectedFeatureAttributes, setSelectedFeatureAttributes] = useState<Record<string, any>[] | null>(null);
+  const [inspectedFeatures, setInspectedFeatures] = useState<Feature<Geometry>[]>([]);
   const [currentInspectedLayerName, setCurrentInspectedLayerName] = useState<string | null>(null);
 
   const selectInteractionRef = useRef<Select | null>(null);
@@ -59,21 +59,12 @@ export const useFeatureInspection = ({
 
   const processAndDisplayFeatures = useCallback((features: Feature<Geometry>[], layerName: string) => {
     if (features.length === 0) {
-      setSelectedFeatureAttributes(null);
+      setInspectedFeatures([]);
       setCurrentInspectedLayerName(null);
       return;
     }
     
-    const attributes = features.map(feature => {
-      const props = feature.getProperties();
-      // Avoid circular references in state by removing the geometry object
-      if (props.geometry) {
-        delete props.geometry;
-      }
-      return props;
-    });
-
-    setSelectedFeatureAttributes(attributes);
+    setInspectedFeatures(features);
     setCurrentInspectedLayerName(layerName);
     if (features.length > 0) {
        toast({ description: `${features.length} entidad(es) de "${layerName}" inspeccionada(s).` });
@@ -87,9 +78,32 @@ export const useFeatureInspection = ({
       selectInteractionRef.current.getFeatures().clear();
     }
     setSelectedFeatures([]);
-    setSelectedFeatureAttributes(null);
+    setInspectedFeatures([]);
     setCurrentInspectedLayerName(null);
   }, []);
+
+  const selectFeaturesById = useCallback((featureIds: string[]) => {
+    if (!selectInteractionRef.current || !mapRef.current) return;
+
+    const featuresToSelect: Feature<Geometry>[] = [];
+    mapRef.current.getLayers().forEach(layer => {
+        if (layer instanceof VectorLayer) {
+            const source = layer.getSource();
+            if (source) {
+                featureIds.forEach(id => {
+                    const feature = source.getFeatureById(id);
+                    if (feature) {
+                        featuresToSelect.push(feature as Feature<Geometry>);
+                    }
+                });
+            }
+        }
+    });
+    
+    selectInteractionRef.current.getFeatures().clear();
+    selectInteractionRef.current.getFeatures().extend(featuresToSelect);
+    setSelectedFeatures(featuresToSelect);
+  }, [mapRef]);
 
   const toggleInspectMode = useCallback(() => {
     const nextState = !isInspectModeActive;
@@ -147,11 +161,12 @@ export const useFeatureInspection = ({
       select.on('select', (e: SelectEvent) => {
         const newlySelectedFeatures = e.target.getFeatures().getArray();
         
+        // This makes selections from the map update the main selection state
+        setSelectedFeatures(newlySelectedFeatures);
+
         if (selectionMode === 'click') { // INSPECTION by click
             processAndDisplayFeatures(newlySelectedFeatures, 'Inspección');
         } else { // SELECTION by click
-            setSelectedFeatures(newlySelectedFeatures);
-            // Only show toast if something was actually selected or deselected
             if (e.selected.length > 0 || e.deselected.length > 0) {
                toast({ description: `${newlySelectedFeatures.length} entidad(es) seleccionada(s).` });
             }
@@ -179,16 +194,16 @@ export const useFeatureInspection = ({
           });
         
         // This logic decides whether to inspect or select based on the current mode
+        const currentSelectedFeatures = select.getFeatures();
+        currentSelectedFeatures.clear();
+        currentSelectedFeatures.extend(featuresInBox);
+        
+        setSelectedFeatures(featuresInBox); // Update main selection state
+
         if (selectionMode === 'click') { // INSPECTION by box
-            select.getFeatures().clear();
-            select.getFeatures().extend(featuresInBox);
             processAndDisplayFeatures(featuresInBox, 'Inspección de Área');
         } else { // SELECTION by box
-            select.getFeatures().clear();
-            select.getFeatures().extend(featuresInBox);
-            const currentSelectedFeatures = select.getFeatures().getArray();
-            setSelectedFeatures(currentSelectedFeatures);
-            toast({ description: `${currentSelectedFeatures.length} entidad(es) seleccionada(s).` });
+            toast({ description: `${featuresInBox.length} entidad(es) seleccionada(s).` });
         }
       });
     }
@@ -208,9 +223,10 @@ export const useFeatureInspection = ({
     selectionMode,
     setSelectionMode,
     selectedFeatures,
-    selectedFeatureAttributes,
+    inspectedFeatures,
     currentInspectedLayerName,
     clearSelection,
     processAndDisplayFeatures, // Still needed for "Show Layer Table" action
+    selectFeaturesById,
   };
 };

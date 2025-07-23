@@ -1,3 +1,4 @@
+
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -7,6 +8,7 @@ import shp from 'shpjs';
 import { nanoid } from 'nanoid';
 import type { MapLayer } from '@/lib/types';
 import type { Toast } from '@/hooks/use-toast';
+import type Feature from 'ol/Feature';
 
 interface FileUploadParams {
     selectedFile: File | null;
@@ -25,7 +27,14 @@ const getBaseName = (filename: string): string => {
     return lastDotIndex > 0 ? filename.substring(0, lastDotIndex) : filename;
 };
 
-const createVectorLayer = (features: any[], layerName: string): MapLayer => {
+const createVectorLayer = (features: Feature[], layerName: string): MapLayer => {
+    // Ensure all features have a unique ID for selection to work correctly.
+    features.forEach(feature => {
+        if (!feature.getId()) {
+            feature.setId(nanoid());
+        }
+    });
+
     const source = new VectorSource({ features });
     const layerId = `${layerName}-${nanoid()}`;
     const olLayer = new VectorLayer({
@@ -56,7 +65,7 @@ export const handleFileUpload = async ({
     const processAndAddLayer = async (content: string | ArrayBuffer, file: File, layerNameOverride?: string) => {
         const fileExtension = getFileExtension(file.name);
         const nameForLayer = layerNameOverride || getBaseName(file.name);
-        let features;
+        let features: Feature[] | undefined;
 
         try {
             switch (fileExtension) {

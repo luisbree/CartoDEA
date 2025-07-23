@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -176,7 +177,6 @@ export default function GeoMapperClient() {
     mapElementRef, 
     isMapReady,
     onNewSelection: () => {
-      // When a new selection is made, or attributes are shown, ensure the attributes panel is visible.
       if (panels.attributes.isMinimized) {
         togglePanelMinimize('attributes');
       }
@@ -549,6 +549,21 @@ export default function GeoMapperClient() {
     handleAddHybridLayer(layer.name, layer.title, initialGeoServerUrl, layer.bbox);
   }, [handleAddHybridLayer, initialGeoServerUrl]);
 
+  const handleAttributeTableFeatureSelect = useCallback((featureId: string, isCtrlOrMeta: boolean) => {
+      const currentSelectedIds = featureInspectionHook.selectedFeatures.map(f => f.getId() as string);
+      let newSelectedIds: string[];
+
+      if (isCtrlOrMeta) {
+          newSelectedIds = currentSelectedIds.includes(featureId)
+              ? currentSelectedIds.filter(id => id !== featureId)
+              : [...currentSelectedIds, featureId];
+      } else {
+          newSelectedIds = [featureId];
+      }
+      featureInspectionHook.selectFeaturesById(newSelectedIds);
+  }, [featureInspectionHook]);
+
+
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
       <header className="bg-gray-800/80 backdrop-blur-md text-white p-2 shadow-md flex items-center justify-between z-30">
@@ -709,9 +724,11 @@ export default function GeoMapperClient() {
               featureInspectionHook.clearSelection(); 
             }}
             onMouseDownHeader={(e) => handlePanelMouseDown(e, 'attributes')}
-            featuresAttributes={featureInspectionHook.selectedFeatureAttributes}
+            inspectedFeatures={featureInspectionHook.inspectedFeatures}
             layerName={featureInspectionHook.currentInspectedLayerName}
             style={{ top: `${panels.attributes.position.y}px`, left: `${panels.attributes.position.x}px`, zIndex: panels.attributes.zIndex }}
+            selectedFeatureIds={featureInspectionHook.selectedFeatures.map(f => f.getId() as string)}
+            onFeatureSelect={handleAttributeTableFeatureSelect}
           />
         )}
         

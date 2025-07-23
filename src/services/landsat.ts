@@ -6,6 +6,7 @@ import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { transformExtent, type ProjectionLike } from 'ol/proj';
 import type { Extent } from 'ol/extent';
+import { nanoid } from 'nanoid';
 
 // Point to the specific collection search endpoint, similar to Sentinel's
 const LANDSAT_API_URL = 'https://catalogue.dataspace.copernicus.eu/resto/api/collections/Landsat-8-9-C2-L2/search.json';
@@ -66,6 +67,10 @@ export async function findLandsatFootprints(
 
     const features = geojsonFormat.readFeatures(data);
     features.forEach((feature, index) => {
+        // Ensure every feature has a unique ID for selection purposes
+        if (!feature.getId()) {
+            feature.setId(nanoid());
+        }
         const originalFeature = data.features[index];
         if(originalFeature.properties.thumbnail) {
             feature.set('preview_url', originalFeature.properties.thumbnail);
