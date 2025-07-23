@@ -1,11 +1,12 @@
-
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DraggablePanel from './DraggablePanel'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ListChecks, Link as LinkIcon, ExternalLink } from 'lucide-react'; // Use ExternalLink
+import { ChevronLeft, ChevronRight, ListChecks, Link as LinkIcon, ExternalLink, ArrowUp, ArrowDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
 
 interface AttributesPanelProps {
   featuresAttributes: Record<string, any>[] | null;
@@ -32,12 +33,48 @@ const AttributesPanel: React.FC<AttributesPanelProps> = ({
   style,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
+
 
   useEffect(() => {
     if (featuresAttributes && featuresAttributes.length > 0) {
       setCurrentPage(1);
+      setSortConfig(null); // Reset sort on new data
     }
   }, [featuresAttributes]);
+
+  const sortedFeatures = useMemo(() => {
+    if (!featuresAttributes) return null;
+    let sortableItems = [...featuresAttributes];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
+        
+        if (valA === null || valA === undefined) return 1;
+        if (valB === null || valB === undefined) return -1;
+        
+        let comparison = 0;
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          comparison = valA - valB;
+        } else {
+          comparison = String(valA).localeCompare(String(valB));
+        }
+        
+        return sortConfig.direction === 'ascending' ? comparison : -comparison;
+      });
+    }
+    return sortableItems;
+  }, [featuresAttributes, sortConfig]);
+
+  const requestSort = (key: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
 
   if (!featuresAttributes || featuresAttributes.length === 0) {
     return (
@@ -61,17 +98,17 @@ const AttributesPanel: React.FC<AttributesPanelProps> = ({
     );
   }
 
-  const totalPages = Math.ceil(featuresAttributes.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil((sortedFeatures?.length || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentVisibleFeatures = featuresAttributes.slice(startIndex, endIndex);
+  const currentVisibleFeatures = sortedFeatures?.slice(startIndex, endIndex) || [];
 
   const allKeys = Array.from(
     new Set(currentVisibleFeatures.flatMap(attrs => Object.keys(attrs)))
   )
   .filter(key => key !== 'description' && key !== 'gmlgeometry' && key !== 'geometry')
   .sort((a, b) => {
-    const order = ['preview_url', 'browser_url']; // Check for browser_url instead of download_url
+    const order = ['preview_url', 'browser_url']; 
     const aIsSpecial = order.includes(a);
     const bIsSpecial = order.includes(b);
 
@@ -125,9 +162,17 @@ const AttributesPanel: React.FC<AttributesPanelProps> = ({
                     {allKeys.map(key => (
                       <TableHead
                         key={key}
-                        className="px-3 py-2 text-xs font-medium text-gray-300 whitespace-nowrap bg-gray-700/50"
+                        className="px-3 py-2 text-xs font-medium text-gray-300 whitespace-nowrap bg-gray-700/50 cursor-pointer hover:bg-gray-600/50"
+                        onClick={() => requestSort(key)}
                       >
-                        {key === 'preview_url' ? 'Vista Previa' : key === 'browser_url' ? 'Navegador' : key}
+                        <div className="flex items-center gap-2">
+                           {key === 'preview_url' ? 'Vista Previa' : key === 'browser_url' ? 'Navegador' : key}
+                           {sortConfig?.key === key && (
+                               sortConfig.direction === 'ascending' 
+                                   ? <ArrowUp className="h-3 w-3" /> 
+                                   : <ArrowDown className="h-3 w-3" />
+                           )}
+                        </div>
                       </TableHead>
                     ))}
                   </TableRow>
