@@ -22,6 +22,8 @@ export const GeeTileLayerInputSchema = z.object({
   bandCombination: z.enum(['URBAN_FALSE_COLOR', 'SWIR_FALSE_COLOR', 'BSI', 'NDVI', 'JRC_WATER_OCCURRENCE', 'OPENLANDMAP_SOC', 'DYNAMIC_WORLD', 'NASADEM_ELEVATION']).describe("The band combination or index to use for the layer."),
   startDate: z.string().optional().describe("The start date for the image search in YYYY-MM-DD format."),
   endDate: z.string().optional().describe("The end date for the image search in YYYY-MM-DD format."),
+  minElevation: z.number().optional().describe("The minimum elevation for the NASADEM visualization range."),
+  maxElevation: z.number().optional().describe("The maximum elevation for the NASADEM visualization range."),
 });
 export type GeeTileLayerInput = z.infer<typeof GeeTileLayerInputSchema>;
 

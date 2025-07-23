@@ -43,7 +43,7 @@ const geeTileLayerFlow = ai.defineFlow(
     try {
       await initializeEe();
 
-      const { aoi, bandCombination, startDate, endDate, zoom } = input;
+      const { aoi, bandCombination, startDate, endDate, zoom, minElevation, maxElevation } = input;
       const geometry = ee.Geometry.Rectangle([aoi.minLon, aoi.minLat, aoi.maxLon, aoi.maxLat]);
       
       let finalImage;
@@ -144,40 +144,10 @@ const geeTileLayerFlow = ai.defineFlow(
           };
           
       } else if (bandCombination === 'NASADEM_ELEVATION') {
-          const image = ee.Image('NASA/NASADEM_HGT/001').select('elevation');
-          finalImage = image; // Use the original image for tile generation
-
-          // Calculate min and max for the current AOI for dynamic stretching
-          const scale = zoom > 10 ? 30 : 250; // Use finer scale for smaller areas
-          const minMax = image.reduceRegion({
-              reducer: ee.Reducer.minMax(),
-              geometry: geometry,
-              scale: scale,
-              maxPixels: 1e9,
-              bestEffort: true
-          });
-          
-          // Promisify getInfo
-          const getInfo = promisify(minMax.getInfo).bind(minMax);
-          const stats = await getInfo();
-          
-          let minVal = 0;
-          let maxVal = 4000;
-
-          if (stats && stats.elevation_min !== null && stats.elevation_max !== null) {
-              minVal = stats.elevation_min;
-              maxVal = stats.elevation_max;
-          }
-
-          // Add a small buffer to min and max if they are the same to ensure a valid range
-          if (minVal === maxVal) {
-              minVal -= 1;
-              maxVal += 1;
-          }
-
+          finalImage = ee.Image('NASA/NASADEM_HGT/001').select('elevation');
           visParams = {
-              min: minVal,
-              max: maxVal,
+              min: minElevation ?? 0,
+              max: maxElevation ?? 4000,
               palette: ['006633', 'E5FFCC', '662A00', 'D8D8D8', 'FFFFFF'] // Terrain palette
           };
 

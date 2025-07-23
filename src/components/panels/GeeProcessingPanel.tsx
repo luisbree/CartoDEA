@@ -10,13 +10,14 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { BrainCircuit, Loader2, Image as ImageIcon, ShieldCheck, CheckCircle, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
+import { BrainCircuit, Loader2, Image as ImageIcon, CheckCircle, AlertTriangle, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { getGeeTileLayer } from '@/ai/flows/gee-flow';
 import type { Map } from 'ol';
 import { transformExtent } from 'ol/proj';
-import type { GeeTileLayerInput, GeeTileLayerOutput } from '@/ai/flows/gee-types';
+import type { GeeTileLayerInput } from '@/ai/flows/gee-types';
 import { cn } from '@/lib/utils';
+import { Slider } from '@/components/ui/slider';
 
 
 interface GeeProcessingPanelProps {
@@ -52,6 +53,7 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
     from: addDays(new Date(), -365),
     to: new Date(),
   });
+  const [elevationRange, setElevationRange] = useState<[number, number]>([0, 150]);
   const { toast } = useToast();
 
   const handleGenerateLayer = async () => {
@@ -83,6 +85,8 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
             bandCombination: selectedCombination,
             startDate: date?.from ? format(date.from, 'yyyy-MM-dd') : undefined,
             endDate: date?.to ? format(date.to, 'yyyy-MM-dd') : undefined,
+            minElevation: selectedCombination === 'NASADEM_ELEVATION' ? elevationRange[0] : undefined,
+            maxElevation: selectedCombination === 'NASADEM_ELEVATION' ? elevationRange[1] : undefined,
         });
         
         if (result && result.tileUrl) {
@@ -110,7 +114,7 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
                     layerName = 'Dynamic World Land Cover';
                     break;
                 case 'NASADEM_ELEVATION':
-                    layerName = 'NASADEM Modelo de Elevación';
+                    layerName = `NASADEM Elevación (${elevationRange[0]}-${elevationRange[1]}m)`;
                     break;
                 default:
                     layerName = 'Capa GEE';
@@ -158,6 +162,7 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
   };
 
   const isDateSelectionDisabled = ['JRC_WATER_OCCURRENCE', 'OPENLANDMAP_SOC', 'NASADEM_ELEVATION'].includes(selectedCombination);
+  const showElevationControls = selectedCombination === 'NASADEM_ELEVATION';
 
   return (
     <DraggablePanel
@@ -215,6 +220,34 @@ const GeeProcessingPanel: React.FC<GeeProcessingPanelProps> = ({
               </div>
             </RadioGroup>
         </div>
+
+        {showElevationControls && (
+          <div className="pt-2 border-t border-white/10 space-y-3">
+              <Label className="text-sm font-semibold text-white">Controles de Elevación</Label>
+              <div>
+                  <Label htmlFor="min-elevation-slider" className="text-xs font-medium text-white/90 mb-1 block">Elevación Mínima: {elevationRange[0]} m</Label>
+                  <Slider
+                      id="min-elevation-slider"
+                      min={-100}
+                      max={5000}
+                      step={1}
+                      value={[elevationRange[0]]}
+                      onValueChange={(value) => setElevationRange(prev => [value[0], Math.max(value[0], prev[1])])}
+                  />
+              </div>
+              <div>
+                  <Label htmlFor="max-elevation-slider" className="text-xs font-medium text-white/90 mb-1 block">Elevación Máxima: {elevationRange[1]} m</Label>
+                  <Slider
+                      id="max-elevation-slider"
+                      min={-100}
+                      max={8000}
+                      step={1}
+                      value={[elevationRange[1]]}
+                      onValueChange={(value) => setElevationRange(prev => [Math.min(value[0], prev[0]), value[0]])}
+                  />
+              </div>
+          </div>
+        )}
 
         <div className="pt-2 border-t border-white/10">
           <Label className={cn("text-sm font-semibold text-white mb-2 block", isDateSelectionDisabled && "text-gray-500")}>
