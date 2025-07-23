@@ -37,6 +37,7 @@ interface LegendPanelProps {
   isSelectionEmpty: boolean;
   onSetLayerOpacity: (layerId: string, opacity: number) => void; 
   onReorderLayers: (draggedIds: string[], targetId: string | null) => void;
+  onRenameLayer: (layerId: string, newName: string) => void;
 
 
   onAddLayer: (layer: MapLayer) => void;
@@ -54,7 +55,7 @@ interface LegendPanelProps {
 const LegendPanel: React.FC<LegendPanelProps> = ({
   panelRef, isCollapsed, onToggleCollapse, onClosePanel, onMouseDownHeader,
   layers, onToggleLayerVisibility, onRemoveLayer, onRemoveLayers, onZoomToLayerExtent, onShowLayerTable,
-  onExtractByPolygon, onExtractBySelection, onExportLayer, isDrawingSourceEmptyOrNotPolygon, isSelectionEmpty, onSetLayerOpacity, onReorderLayers,
+  onExtractByPolygon, onExtractBySelection, onExportLayer, isDrawingSourceEmptyOrNotPolygon, isSelectionEmpty, onSetLayerOpacity, onReorderLayers, onRenameLayer,
   onAddLayer, 
   isInteractionActive, onToggleInteraction, selectionMode, onSetSelectionMode, onClearSelection,
   style,
@@ -156,6 +157,7 @@ const LegendPanel: React.FC<LegendPanelProps> = ({
           isSelectionEmpty={isSelectionEmpty}
           onSetLayerOpacity={onSetLayerOpacity}
           onReorderLayers={onReorderLayers}
+          onRenameLayer={onRenameLayer}
           selectedLayerIds={selectedLayerIds}
           onLayerClick={handleLayerClick}
         />

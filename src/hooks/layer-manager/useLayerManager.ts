@@ -356,6 +356,18 @@ export const useLayerManager = ({
     }
   }, [layers, onShowTableRequest, toast]);
 
+  const renameLayer = useCallback((layerId: string, newName: string) => {
+    setLayers(prev =>
+      prev.map(l => {
+        if (l.id === layerId) {
+          toast({ description: `Capa renombrada a "${newName}"` });
+          return { ...l, name: newName };
+        }
+        return l;
+      })
+    );
+  }, [toast]);
+
   const isDrawingSourceEmptyOrNotPolygon = true; // Placeholder, will be replaced with real logic
   
   const handleExtractByPolygon = useCallback((layerIdToExtract: string, onSuccess?: () => void) => {
@@ -647,6 +659,7 @@ export const useLayerManager = ({
     changeLayerStyle,
     zoomToLayerExtent,
     handleShowLayerTable,
+    renameLayer,
     isDrawingSourceEmptyOrNotPolygon,
     handleExtractByPolygon,
     handleExtractBySelection,

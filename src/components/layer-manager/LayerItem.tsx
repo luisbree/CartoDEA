@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import { Eye, EyeOff, Settings2, ZoomIn, Table2, Trash2, Scissors, Percent, Grip
 import type { MapLayer } from '@/lib/types';
 import VectorLayer from 'ol/layer/Vector'; 
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 
 interface LayerItemProps {
@@ -33,6 +34,7 @@ interface LayerItemProps {
   isSelectionEmpty: boolean;
   onSetLayerOpacity: (layerId: string, opacity: number) => void;
   onExportLayer: (layerId: string, format: 'geojson' | 'kml' | 'shp') => void;
+  onRenameLayer: (layerId: string, newName: string) => void;
   
   // Drag and Drop props
   isDraggable: boolean;
@@ -62,6 +64,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   isSelectionEmpty,
   onSetLayerOpacity,
   onExportLayer,
+  onRenameLayer,
   isDraggable,
   onDragStart,
   onDragEnd,
@@ -76,6 +79,42 @@ const LayerItem: React.FC<LayerItemProps> = ({
 }) => {
   const isVectorLayer = layer.olLayer instanceof VectorLayer;
   const currentOpacityPercentage = Math.round(layer.opacity * 100);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingName, setEditingName] = useState(layer.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+  
+  const handleDoubleClick = () => {
+    setIsEditing(true);
+  };
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditingName(e.target.value);
+  };
+
+  const handleNameSubmit = () => {
+    if (editingName.trim() && editingName.trim() !== layer.name) {
+      onRenameLayer(layer.id, editingName.trim());
+    }
+    setIsEditing(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleNameSubmit();
+    } else if (e.key === 'Escape') {
+      setEditingName(layer.name);
+      setIsEditing(false);
+    }
+  };
+
 
   return (
     <li 
@@ -109,15 +148,29 @@ const LayerItem: React.FC<LayerItemProps> = ({
         {layer.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       </Button>
 
-      <span
-        className={cn(
-          "flex-1 cursor-default text-xs font-medium truncate min-w-0 select-none",
-          layer.visible ? "text-white" : "text-gray-400"
-        )}
-        title={layer.name}
-      >
-        {layer.name}
-      </span>
+      {isEditing ? (
+         <Input
+            ref={inputRef}
+            type="text"
+            value={editingName}
+            onChange={handleNameChange}
+            onBlur={handleNameSubmit}
+            onKeyDown={handleKeyDown}
+            className="h-6 text-xs p-1 bg-gray-900/80 border-primary focus-visible:ring-primary/50"
+            onClick={(e) => e.stopPropagation()} // Prevent list item click handler from firing
+          />
+      ) : (
+        <span
+          className={cn(
+            "flex-1 cursor-pointer text-xs font-medium truncate min-w-0 select-none",
+            layer.visible ? "text-white" : "text-gray-400"
+          )}
+          title={layer.name}
+          onDoubleClick={handleDoubleClick}
+        >
+          {layer.name}
+        </span>
+      )}
       <div className="flex items-center space-x-0.5 flex-shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -133,6 +186,13 @@ const LayerItem: React.FC<LayerItemProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="bg-gray-700 text-white border-gray-600 w-56">
+             <DropdownMenuItem
+              className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
+              onSelect={() => setIsEditing(true)}
+            >
+              <ZoomIn className="mr-2 h-3.5 w-3.5" />
+              Renombrar Capa
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs hover:bg-gray-600 focus:bg-gray-600 cursor-pointer"
               onSelect={() => onZoomToExtent(layer.id)}

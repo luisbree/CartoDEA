@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -744,6 +743,7 @@ export default function GeoMapperClient() {
             onExtractByPolygon={(layerId) => layerManagerHook.handleExtractByPolygon(layerId)}
             onExtractBySelection={layerManagerHook.handleExtractBySelection}
             onExportLayer={layerManagerHook.handleExportLayer}
+            onRenameLayer={layerManagerHook.renameLayer}
             isDrawingSourceEmptyOrNotPolygon={layerManagerHook.isDrawingSourceEmptyOrNotPolygon}
             isSelectionEmpty={featureInspectionHook.selectedFeatures.length === 0}
             onSetLayerOpacity={layerManagerHook.setLayerOpacity}
@@ -868,5 +868,3 @@ export default function GeoMapperClient() {
     </div>
   );
 }
-
-    

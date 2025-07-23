@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useRef, useState } from 'react';
@@ -19,6 +18,7 @@ interface LayerListProps {
   isSelectionEmpty: boolean;
   onSetLayerOpacity: (layerId: string, opacity: number) => void;
   onReorderLayers?: (draggedIds: string[], targetId: string | null) => void;
+  onRenameLayer: (layerId: string, newName: string) => void;
 
   // Selection props
   selectedLayerIds: string[];
@@ -38,6 +38,7 @@ const LayerList: React.FC<LayerListProps> = ({
   isSelectionEmpty,
   onSetLayerOpacity,
   onReorderLayers,
+  onRenameLayer,
   selectedLayerIds,
   onLayerClick,
 }) => {
@@ -110,6 +111,7 @@ const LayerList: React.FC<LayerListProps> = ({
           onExtractByPolygon={onExtractByPolygon}
           onExtractBySelection={onExtractBySelection}
           onExportLayer={onExportLayer}
+          onRenameLayer={onRenameLayer}
           isDrawingSourceEmptyOrNotPolygon={isDrawingSourceEmptyOrNotPolygon}
           isSelectionEmpty={isSelectionEmpty}
           onSetLayerOpacity={onSetLayerOpacity}
