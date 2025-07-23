@@ -131,7 +131,7 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                 />
                 <Separator className="my-2 bg-white/10" />
                  <div className="space-y-3">
-                    <p className="text-xs text-gray-300/80">O realice una búsqueda personalizada por clave/valor para el polígono dibujado.</p>
+                    <p className="text-xs text-gray-300/80">Busque por clave/valor. Use comas en "Valor" para una consulta OR.</p>
                     <div className="flex gap-2">
                       <div className="flex-1 space-y-1">
                           <Label htmlFor="osm-key" className="text-xs text-white/90">Clave (Key)</Label>
@@ -139,7 +139,7 @@ const ToolsPanel: React.FC<ToolsPanelProps> = ({
                       </div>
                       <div className="flex-1 space-y-1">
                           <Label htmlFor="osm-value" className="text-xs text-white/90">Valor (Value)</Label>
-                          <Input id="osm-value" value={customValue} onChange={e => setCustomValue(e.target.value)} placeholder="hospital" className="h-8 text-xs bg-black/20" />
+                          <Input id="osm-value" value={customValue} onChange={e => setCustomValue(e.target.value)} placeholder="hospital,clinic" className="h-8 text-xs bg-black/20" />
                       </div>
                     </div>
                     <Button onClick={handleCustomSearch} disabled={!customKey.trim() || isFetchingOSM} className="w-full h-9">

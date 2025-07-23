@@ -64,10 +64,18 @@ export const useOSMData = ({ mapRef, drawingSourceRef, addLayer, osmCategoryConf
             const queryFragments = selectedConfigs.map(c => c.overpassQueryFragment(bboxStr)).join('');
             overpassQuery = `[out:json][timeout:60];(${queryFragments});out geom;`;
         } else { // custom query
-            if (query.value) {
-                overpassQuery = `[out:json][timeout:60];(nwr["${query.key}"="${query.value}"](${bboxStr}););out geom;`;
-                layerName = `OSM: ${query.key}=${query.value}`;
+             const values = query.value.split(',').map(v => v.trim()).filter(v => v);
+            if (values.length > 1) {
+                // Multiple values: create a regex to OR them
+                const regexValue = `^(${values.join('|')})$`;
+                overpassQuery = `[out:json][timeout:60];(nwr["${query.key}"~"${regexValue}"](${bboxStr}););out geom;`;
+                layerName = `OSM: ${query.key}`;
+            } else if (values.length === 1 && values[0]) {
+                // Single value
+                overpassQuery = `[out:json][timeout:60];(nwr["${query.key}"="${values[0]}"](${bboxStr}););out geom;`;
+                layerName = `OSM: ${query.key}=${values[0]}`;
             } else {
+                // No value, search for key existence
                 overpassQuery = `[out:json][timeout:60];(nwr["${query.key}"](${bboxStr}););out geom;`;
                 layerName = `OSM: ${query.key}`;
             }
