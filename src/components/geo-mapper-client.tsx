@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { MapPin, Database, Wrench, ListTree, ListChecks, Sparkles, ClipboardCheck, Library, LifeBuoy, Printer, Server, BrainCircuit } from 'lucide-react';
+import { MapPin, Database, Wrench, ListTree, ListChecks, Sparkles, ClipboardCheck, Library, LifeBuoy, Printer, Server, BrainCircuit, Camera } from 'lucide-react';
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style';
 import { transform, transformExtent } from 'ol/proj';
 import type { Extent } from 'ol/extent';
@@ -65,7 +65,7 @@ const osmCategoryConfig: OSMCategoryConfig[] = [
     matcher: (tags) => tags && !!tags.highway,
     style: new Style({ stroke: new Stroke({ color: '#adb5bd', width: 3 }) })
   },
-  {
+    {
     id: 'bridges', name: 'OSM Puentes',
     overpassQueryFragment: (bboxStr) => `nwr[~"."~"[Bb]ridge|[Pp]uente",i](${bboxStr});`,
     matcher: (tags) => tags && Object.entries(tags).some(([key, value]) =>
@@ -654,6 +654,12 @@ export default function GeoMapperClient() {
           baseLayerSettings={baseLayerSettings}
         />
 
+        {/* Center Crosshair */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none z-10">
+            <div className="absolute top-1/2 left-0 w-full h-px bg-gray-400/70 -translate-y-1/2"></div>
+            <div className="absolute left-1/2 top-0 h-full w-px bg-gray-400/70 -translate-x-1/2"></div>
+        </div>
+
         <WfsLoadingIndicator isVisible={isWfsLoading || wfsLibraryHook.isLoading} />
 
         {panels.layers && !panels.layers.isMinimized && (
@@ -860,3 +866,5 @@ export default function GeoMapperClient() {
     </div>
   );
 }
+
+    
