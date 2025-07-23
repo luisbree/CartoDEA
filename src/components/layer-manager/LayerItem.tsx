@@ -85,9 +85,14 @@ const LayerItem: React.FC<LayerItemProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (isEditing) {
+      // Use a timeout to ensure the input is rendered before focusing/selecting
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 0);
     }
   }, [isEditing]);
   
